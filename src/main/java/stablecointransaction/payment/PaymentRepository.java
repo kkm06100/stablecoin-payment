@@ -21,6 +21,12 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
                                     @Param("before") OffsetDateTime before,
                                     Pageable pageable);
 
+  @Query("select p from Payment p where p.customerId = :customerId "
+       + "and p.createdAt < :before order by p.createdAt desc, p.paymentId desc")
+  List<Payment> findCustomerHistory(@Param("customerId") UUID customerId,
+                                    @Param("before") OffsetDateTime before,
+                                    Pageable pageable);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from Payment p where p.merchantId = :merchantId and p.orderId = :orderId")
   Optional<Payment> findByMerchantIdAndOrderIdForUpdate(

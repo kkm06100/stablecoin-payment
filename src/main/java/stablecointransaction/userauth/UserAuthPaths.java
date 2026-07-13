@@ -4,6 +4,7 @@ public final class UserAuthPaths {
   public static final String USER_AUTH_PREFIX = "/v1/user-auth";
   public static final String MERCHANT_PREFIX = "/v1/merchants";
   public static final String PAYMENT_QR_PREFIX = "/v1/payment-qr";
+  public static final String PAYMENTS_PREFIX = "/v1/payments";
 
   private UserAuthPaths() {}
 
