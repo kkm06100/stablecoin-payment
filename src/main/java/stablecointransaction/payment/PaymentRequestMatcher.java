@@ -2,7 +2,6 @@ package stablecointransaction.payment;
 
 import java.math.BigInteger;
 import java.util.UUID;
-import stablecointransaction.transfer.DuplicateRequestMismatchException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,7 +12,7 @@ public class PaymentRequestMatcher {
         && payment.getToken().equals(token)
         && payment.getAmount().equals(amount);
     if (!same) {
-      throw new DuplicateRequestMismatchException(
+      throw new PaymentRequestMismatchException(
           "order_id " + payment.getOrderId() + " already used with different fields");
     }
   }
