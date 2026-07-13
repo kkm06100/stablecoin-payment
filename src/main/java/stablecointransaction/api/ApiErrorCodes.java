@@ -26,6 +26,7 @@ public final class ApiErrorCodes {
   public static final String QR_TOKEN_INVALID = "QR_TOKEN_INVALID";
   public static final String SELF_TRANSFER_NOT_ALLOWED = "SELF_TRANSFER_NOT_ALLOWED";
   public static final String SEND_FAILED = "SEND_FAILED";
+  public static final String STABLECOIN_TRANSACTION_FAILED = "STABLECOIN_TRANSACTION_FAILED";
   public static final String SWEEP_NOT_FOUND = "SWEEP_NOT_FOUND";
   public static final String UNSUPPORTED_TOKEN = "UNSUPPORTED_TOKEN";
   public static final String USER_SUSPENDED = "USER_SUSPENDED";

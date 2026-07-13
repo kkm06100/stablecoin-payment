@@ -10,6 +10,7 @@ import stablecointransaction.payment.PaymentAlreadyProcessedException;
 import stablecointransaction.payment.PaymentExpiredException;
 import stablecointransaction.payment.PaymentNotFoundException;
 import stablecointransaction.payment.PaymentRequestMismatchException;
+import stablecointransaction.client.StablecoinTransactionRemoteException;
 import stablecointransaction.userauth.UserAuthException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -84,6 +85,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> badRequest(IllegalArgumentException ex) {
     return response(400, ApiErrorCodes.BAD_REQUEST, ex.getMessage());
+  }
+
+  @ExceptionHandler(StablecoinTransactionRemoteException.class)
+  public ResponseEntity<ErrorResponse> transactionRemote(StablecoinTransactionRemoteException ex) {
+    int status = ex.getStatus() >= 400 && ex.getStatus() < 500 ? ex.getStatus() : 502;
+    return response(status, ApiErrorCodes.STABLECOIN_TRANSACTION_FAILED, ex.getMessage());
   }
 
   private ResponseEntity<ErrorResponse> response(int status, String code, String message) {
