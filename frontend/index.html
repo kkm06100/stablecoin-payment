@@ -6,8 +6,15 @@
   <p>실제 payment API를 호출하는 전체 결제 시나리오</p>
   <label>Payment API <input id="baseUrl" value="http://localhost:8081"></label>
   <button id="runScenario">전체 시나리오 실행</button>
+  <button id="prepareAccounts">테스트 계정 준비(회원가입)</button>
   <button id="clearLog">로그 지우기</button>
   <p id="status">대기 중</p>
+
+  <h2>로그인 계정</h2>
+  <label>가맹점 이메일 <input id="merchantEmail" placeholder="merchant@example.com"></label>
+  <label>비밀번호 <input id="merchantPassword" type="password" value="password123"></label>
+  <label>고객 이메일 <input id="customerEmail" placeholder="customer@example.com"></label>
+  <label>비밀번호 <input id="customerPassword" type="password" value="password123"></label>
 
   <h2>시나리오 상태</h2>
   <ol id="steps">

@@ -18,9 +18,13 @@ async function request(method, path, body, token) {
   if (!response.ok) throw new Error(`${response.status} ${path}: ${JSON.stringify(data)}`);
   return data;
 }
-async function signup(prefix, displayName) {
-  const email = `${prefix}-${Date.now()}@example.com`;
+async function signup(prefix, displayName, emailOverride) {
+  const email = emailOverride || `${prefix}-${Date.now()}@example.com`;
   return request('POST', '/v1/user-auth/signup', {email, password:'password123', display_name:displayName});
+}
+async function login(email, password) {
+  const body = await request('POST', '/v1/user-auth/login', {email, password});
+  return body.access_token;
 }
 function renderQr(payload) {
   state.qrPayload = payload;
@@ -32,14 +36,12 @@ async function runScenario() {
   $('log').textContent = ''; $('status').textContent = '실행 중…';
   document.querySelectorAll('#steps li').forEach((node) => { delete node.dataset.status; node.textContent = node.textContent.replace(/^[✓…] /, ''); });
   try {
-    const merchantAuth = await signup('merchant', 'Demo Merchant Owner');
-    state.merchantToken = merchantAuth.access_token; mark('merchant-signup');
+    state.merchantToken = await login($('merchantEmail').value, $('merchantPassword').value); mark('merchant-signup');
     const merchant = await request('POST', '/v1/merchants', {merchant_name:'Demo Merchant', business_number:String(Date.now()).slice(-10)}, state.merchantToken);
     state.merchantId = merchant.merchant_id; mark('merchant-create');
     const payment = await request('POST', `/v1/merchants/${state.merchantId}/payments`, {order_id:`order-${Date.now()}`, token:'USDC-test', amount:1, description:'Scenario v2'}, state.merchantToken);
     state.paymentId = payment.payment_id; renderQr(payment.qr_payload); mark('payment-create');
-    const customerAuth = await signup('customer', 'Demo Customer');
-    state.customerToken = customerAuth.access_token; mark('customer-signup');
+    state.customerToken = await login($('customerEmail').value, $('customerPassword').value); mark('customer-signup');
     await request('GET', `/v1/payment-qr/${state.qrToken}`); mark('qr-lookup');
     try {
       await request('POST', `/v1/payment-qr/${state.qrToken}/confirm`, null, state.customerToken);
@@ -50,4 +52,15 @@ async function runScenario() {
   } catch (error) { $('status').textContent = `시나리오 중단: ${error.message}`; }
 }
 $('runScenario').onclick = runScenario;
+$('prepareAccounts').onclick = async () => {
+  try {
+    const merchantEmail = `merchant-${Date.now()}@example.com`;
+    const customerEmail = `customer-${Date.now()}@example.com`;
+    await signup('merchant', 'Demo Merchant Owner', merchantEmail);
+    await signup('customer', 'Demo Customer', customerEmail);
+    $('merchantEmail').value = merchantEmail;
+    $('customerEmail').value = customerEmail;
+    $('status').textContent = '계정 준비 완료';
+  } catch (error) { $('status').textContent = error.message; }
+};
 $('clearLog').onclick = () => { $('log').textContent = ''; $('status').textContent = '대기 중'; };
