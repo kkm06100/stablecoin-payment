@@ -1,1 +1,54 @@
-const steps={merchant:{title:'가맹점 결제 생성',copy:'가맹점 권한으로 결제 금액과 주문번호를 입력합니다.',api:'POST /v1/merchants/{id}/payments',html:'<span class="eyebrow">MERCHANT MODE</span><h3>결제 생성</h3><div class="mock-input">주문번호 · ORD-20260713</div><div class="mock-input">금액 · 12 USDC</div><div class="mock-input">설명 · 아이스 아메리카노</div>'},qr:{title:'QR 발급',copy:'Payment 서버가 5분 TTL의 일회성 QR payload를 발급합니다.',api:'POST /v1/merchants/{id}/payments → qr_payload',html:'<span class="eyebrow">PAYMENT CREATED</span><h3>스캔해주세요</h3><div class="mock-qr"></div><p style="text-align:center">유효시간 04:59</p>'},customer:{title:'고객 스캔 및 확인',copy:'고객은 QR을 스캔하고 결제 정보를 확인한 뒤 승인합니다.',api:'GET /v1/payment-qr/{token} → POST /confirm',html:'<span class="eyebrow">CUSTOMER MODE</span><h3>12 USDC 결제</h3><p>ORD-20260713<br/>가맹점 · REST Merchant</p><button>결제 승인</button>'},done:{title:'송금 완료',copy:'Payment 서버가 stablecoin-transaction에 서명된 REST transfer를 요청합니다.',api:'POST /v1/transfers → status: CONFIRMED',html:'<span class="eyebrow">PAYMENT COMPLETE</span><h3>결제 완료</h3><div class="status">✓ 12 USDC 송금 성공</div><p>transfer_id가 Payment에 기록되고 QR은 사용 처리됩니다.</p>'}};const order=['merchant','qr','customer','done'];let index=0;function render(){const key=order[index],s=steps[key];document.querySelector('#screen').innerHTML=s.html;document.querySelector('#step-title').textContent=s.title;document.querySelector('#step-copy').textContent=s.copy;document.querySelector('#api-call').textContent=s.api;document.querySelector('#next').textContent=index===order.length-1?'완료':'다음 단계';document.querySelectorAll('.flow-node').forEach(n=>n.classList.toggle('active',n.dataset.step===key))}document.querySelector('#next').onclick=()=>{index=Math.min(index+1,order.length-1);render()};document.querySelector('#reset').onclick=()=>{index=0;render()};render();
+let accessToken = '';
+let merchantId = '';
+
+const $ = (id) => document.getElementById(id);
+const api = () => $('baseUrl').value.replace(/\/$/, '');
+const headers = () => ({'Content-Type': 'application/json', ...(accessToken ? {Authorization: `Bearer ${accessToken}`} : {})});
+const show = (message) => { $('status').textContent = message; };
+const print = (id, value) => { $(id).textContent = JSON.stringify(value, null, 2); };
+
+async function request(path, options = {}) {
+  const response = await fetch(api() + path, { ...options, headers: {...headers(), ...(options.headers || {})} });
+  const text = await response.text();
+  let body; try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (!response.ok) throw new Error(`${response.status}: ${JSON.stringify(body)}`);
+  return body;
+}
+
+async function authenticate(path) {
+  try {
+    const body = await request(path, {method:'POST', body: JSON.stringify({
+      email: $('email').value, password: $('password').value, display_name: $('displayName').value
+    })});
+    accessToken = body.access_token;
+    show('인증 성공');
+  } catch (error) { show(error.message); }
+}
+
+$('signup').onclick = () => authenticate('/v1/user-auth/signup');
+$('login').onclick = () => authenticate('/v1/user-auth/login');
+$('createMerchant').onclick = async () => {
+  try {
+    const body = await request('/v1/merchants', {method:'POST', body: JSON.stringify({merchant_name:'Demo Merchant', business_number:'1234567890'})});
+    merchantId = body.merchant_id; print('merchantResult', body); show('가맹점 생성 성공');
+  } catch (error) { show(error.message); }
+};
+$('createPayment').onclick = async () => {
+  try {
+    if (!merchantId) throw new Error('먼저 가맹점을 생성하세요.');
+    const body = await request(`/v1/merchants/${merchantId}/payments`, {method:'POST', body: JSON.stringify({
+      order_id:$('orderId').value, token:$('token').value, amount:Number($('amount').value), description:'API demo'
+    })});
+    print('paymentResult', body);
+    if (body.qr_payload) $('qrToken').value = body.qr_payload.split('/').pop();
+    show('결제 생성 성공');
+  } catch (error) { show(error.message); }
+};
+$('lookupQr').onclick = async () => {
+  try { const body = await request(`/v1/payment-qr/${encodeURIComponent($('qrToken').value)}`); print('qrResult', body); show('QR 조회 성공'); }
+  catch (error) { show(error.message); }
+};
+$('confirmPayment').onclick = async () => {
+  try { const body = await request(`/v1/payment-qr/${encodeURIComponent($('qrToken').value)}/confirm`, {method:'POST'}); print('qrResult', body); show('결제 확정 성공'); }
+  catch (error) { show(error.message); }
+};
