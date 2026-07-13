@@ -7,6 +7,8 @@ public final class PaymentStatuses {
   public static final String FAILED = "FAILED";
   public static final String EXPIRED = "EXPIRED";
   public static final String CANCELLED = "CANCELLED";
+  public static final String REFUND_PENDING = "REFUND_PENDING";
+  public static final String REFUNDED = "REFUNDED";
 
   private PaymentStatuses() {}
 }
