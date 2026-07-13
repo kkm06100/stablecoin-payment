@@ -1,36 +1,30 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment API Demo</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment Scenario v2</title></head>
 <body>
-  <h1>Stablecoin Payment API Demo</h1>
+  <h1>Stablecoin Payment · Scenario v2</h1>
+  <p>실제 payment API를 호출하는 전체 결제 시나리오</p>
   <label>Payment API <input id="baseUrl" value="http://localhost:8081"></label>
+  <button id="runScenario">전체 시나리오 실행</button>
+  <button id="clearLog">로그 지우기</button>
   <p id="status">대기 중</p>
-  <hr>
-  <h2>1. 회원가입</h2>
-  <input id="email" value="demo@example.com" placeholder="email">
-  <input id="password" value="password123" placeholder="password" type="password">
-  <input id="displayName" value="Demo User" placeholder="display name">
-  <button id="signup">회원가입</button>
-  <button id="login">로그인</button>
-  <hr>
-  <h2>2. 가맹점 생성</h2>
-  <button id="createMerchant">가맹점 생성</button>
-  <pre id="merchantResult"></pre>
-  <hr>
-  <h2>3. 결제 생성</h2>
-  <input id="orderId" value="demo-order-1" placeholder="order id">
-  <input id="amount" value="1" placeholder="amount" type="number">
-  <input id="token" value="USDC-test" placeholder="token">
-  <button id="createPayment">결제 생성</button>
-  <pre id="paymentResult"></pre>
-  <hr>
-  <h2>4. QR 조회 / 고객 결제</h2>
-  <input id="qrToken" placeholder="QR token 또는 payload 마지막 값">
-  <div><canvas id="qrCanvas" width="220" height="220"></canvas></div>
+
+  <h2>시나리오 상태</h2>
+  <ol id="steps">
+    <li data-step="merchant-signup">가맹점 회원가입</li>
+    <li data-step="merchant-create">가맹점 생성</li>
+    <li data-step="payment-create">결제 생성 및 QR 발급</li>
+    <li data-step="customer-signup">고객 회원가입</li>
+    <li data-step="qr-lookup">고객 QR 조회</li>
+    <li data-step="payment-confirm">고객 결제 확정</li>
+  </ol>
+
+  <h2>QR</h2>
+  <canvas id="qrCanvas" width="220" height="220"></canvas>
   <pre id="qrPayload"></pre>
-  <button id="lookupQr">QR 조회</button>
-  <button id="confirmPayment">결제 확정</button>
-  <pre id="qrResult"></pre>
+
+  <h2>API 로그</h2>
+  <pre id="log"></pre>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script src="./app.js"></script>
 </body>
