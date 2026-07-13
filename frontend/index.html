@@ -26,9 +26,12 @@
   <hr>
   <h2>4. QR 조회 / 고객 결제</h2>
   <input id="qrToken" placeholder="QR token 또는 payload 마지막 값">
+  <div><canvas id="qrCanvas" width="220" height="220"></canvas></div>
+  <pre id="qrPayload"></pre>
   <button id="lookupQr">QR 조회</button>
   <button id="confirmPayment">결제 확정</button>
   <pre id="qrResult"></pre>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

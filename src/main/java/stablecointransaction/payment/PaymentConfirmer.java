@@ -5,6 +5,7 @@ import java.util.UUID;
 import stablecointransaction.payment.dto.PaymentResponse;
 import stablecointransaction.payment.qr.PaymentQrToken;
 import stablecointransaction.payment.qr.PaymentQrTokenRepository;
+import stablecointransaction.payment.qr.PaymentQrService;
 import stablecointransaction.client.StablecoinTransactionClient;
 import stablecointransaction.user.CustomerProfile;
 import stablecointransaction.user.CustomerProfileRepository;
@@ -21,6 +22,7 @@ public class PaymentConfirmer {
   private final PaymentRepository payments;
   private final PaymentQrLookup qrLookup;
   private final PaymentQrTokenRepository qrTokens;
+  private final PaymentQrService qrService;
   private final CustomerProfileRepository customers;
   private final CustomerWalletRepository customerWallets;
   private final StablecoinTransactionClient transactionClient;
@@ -28,12 +30,14 @@ public class PaymentConfirmer {
   public PaymentConfirmer(PaymentRepository payments,
                           PaymentQrLookup qrLookup,
                           PaymentQrTokenRepository qrTokens,
+                          PaymentQrService qrService,
                           CustomerProfileRepository customers,
                           CustomerWalletRepository customerWallets,
                           StablecoinTransactionClient transactionClient) {
     this.payments = payments;
     this.qrLookup = qrLookup;
     this.qrTokens = qrTokens;
+    this.qrService = qrService;
     this.customers = customers;
     this.customerWallets = customerWallets;
     this.transactionClient = transactionClient;
@@ -42,6 +46,15 @@ public class PaymentConfirmer {
   @Transactional
   public PaymentResponse confirm(UUID userId, String rawToken) {
     OffsetDateTime now = OffsetDateTime.now();
+    PaymentQrToken existing = qrTokens.findByTokenHash(qrService.hash(rawToken))
+        .orElseThrow(() -> new InvalidQrTokenException("QR token not found"));
+    if (existing.getUsedAt() != null) {
+      Payment completed = payments.findById(existing.getPaymentId())
+          .orElseThrow(() -> new PaymentNotFoundException("payment " + existing.getPaymentId()));
+      if (PaymentStatuses.PAID.equals(completed.getStatus())) {
+        return PaymentResponse.from(completed, null);
+      }
+    }
     PaymentQrToken qrToken = qrLookup.requireActiveToken(rawToken, now);
     Payment payment = qrLookup.requirePayablePayment(qrToken.getPaymentId(), now);
     CustomerProfile customer = customers.findByUserId(userId)

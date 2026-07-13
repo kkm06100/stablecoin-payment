@@ -40,7 +40,11 @@ $('createPayment').onclick = async () => {
       order_id:$('orderId').value, token:$('token').value, amount:Number($('amount').value), description:'API demo'
     })});
     print('paymentResult', body);
-    if (body.qr_payload) $('qrToken').value = body.qr_payload.split('/').pop();
+    if (body.qr_payload) {
+      $('qrToken').value = body.qr_payload.split('/').pop();
+      $('qrPayload').textContent = body.qr_payload;
+      if (window.QRCode) QRCode.toCanvas($('qrCanvas'), location.origin + body.qr_payload);
+    }
     show('결제 생성 성공');
   } catch (error) { show(error.message); }
 };
