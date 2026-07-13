@@ -39,6 +39,12 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
   }
 
   @Override
+  public void registerTokenAccount(UUID walletId, String mint) {
+    String body = json(new RegisterTokenAccountBody(mint));
+    exchange("POST", "/v1/wallets/" + walletId + "/token-accounts", body, Object.class);
+  }
+
+  @Override
   public RemoteTransfer createTransfer(UUID srcWalletId, UUID dstWalletId,
                                        String token, BigInteger amount,
                                        String referenceId, String memo) {
@@ -91,4 +97,6 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
   private record CreateTransferBody(UUID src_wallet_id, UUID dst_wallet_id,
                                     String token, BigInteger amount,
                                     String reference_id, String memo) {}
+
+  private record RegisterTokenAccountBody(String mint) {}
 }

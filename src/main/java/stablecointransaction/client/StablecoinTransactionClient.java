@@ -7,6 +7,8 @@ import java.util.UUID;
 public interface StablecoinTransactionClient {
   RemoteWallet createUserWallet(String label);
 
+  void registerTokenAccount(UUID walletId, String mint);
+
   RemoteTransfer createTransfer(UUID srcWalletId, UUID dstWalletId, String token,
                                 BigInteger amount, String referenceId, String memo);
 

@@ -40,6 +40,7 @@ payment:
 
 stablecoin-transaction:
   base-url: ${STABLECOIN_TRANSACTION_URL:http://localhost:8090}
+  usdc-test-mint: ${STABLECOIN_USDC_TEST_MINT:Cvk2EfwzeNcv9TxEFfXuExr2fq11BzHjyTt91gMRBbjj}
 
 solana:
   rpc-url: ${SOLANA_RPC_URL:http://localhost:8899}

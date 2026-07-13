@@ -3,6 +3,7 @@ package stablecointransaction.merchant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import stablecointransaction.client.StablecoinTransactionClient;
+import stablecointransaction.client.StablecoinTransactionClientProperties;
 import stablecointransaction.merchant.dto.MerchantResponse;
 import stablecointransaction.user.User;
 import stablecointransaction.user.UserRepository;
@@ -17,17 +18,20 @@ public class MerchantService {
   private final MerchantWalletRepository merchantWallets;
   private final UserRepository users;
   private final StablecoinTransactionClient transactionClient;
+  private final StablecoinTransactionClientProperties transactionProperties;
 
   public MerchantService(MerchantRepository merchants,
                          MerchantMemberRepository members,
                          MerchantWalletRepository merchantWallets,
                          UserRepository users,
-                         StablecoinTransactionClient transactionClient) {
+                         StablecoinTransactionClient transactionClient,
+                         StablecoinTransactionClientProperties transactionProperties) {
     this.merchants = merchants;
     this.members = members;
     this.merchantWallets = merchantWallets;
     this.users = users;
     this.transactionClient = transactionClient;
+    this.transactionProperties = transactionProperties;
   }
 
   @Transactional
@@ -54,6 +58,7 @@ public class MerchantService {
 
     StablecoinTransactionClient.RemoteWallet wallet = transactionClient.createUserWallet(
         "merchant-" + merchantId);
+    transactionClient.registerTokenAccount(wallet.walletId(), transactionProperties.getUsdcTestMint());
     merchantWallets.save(new MerchantWallet(merchantId, wallet.walletId(),
         MerchantWalletRoles.SETTLEMENT, MerchantWalletStatuses.ACTIVE, now));
     return MerchantResponse.from(merchant, wallet.walletId());
