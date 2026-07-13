@@ -70,7 +70,8 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
           .body(type);
     } catch (RestClientResponseException e) {
       throw new StablecoinTransactionRemoteException(e.getStatusCode().value(),
-          "stablecoin-transaction returned " + e.getStatusCode().value(), e);
+          "stablecoin-transaction returned " + e.getStatusCode().value()
+              + ": " + e.getResponseBodyAsString(), e);
     }
   }
 
