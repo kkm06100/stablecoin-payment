@@ -28,7 +28,7 @@ CREATE INDEX idx_merchant_members_user
 
 CREATE TABLE merchant.merchant_wallets (
   merchant_id  UUID NOT NULL REFERENCES merchant.merchants(merchant_id),
-  wallet_id    UUID NOT NULL UNIQUE REFERENCES wallet.wallets(wallet_id),
+  wallet_id    UUID NOT NULL UNIQUE,
   wallet_role  TEXT NOT NULL,
   status       TEXT NOT NULL,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),

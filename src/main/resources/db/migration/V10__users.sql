@@ -49,7 +49,7 @@ CREATE TABLE identity.customer_profiles (
 
 CREATE TABLE identity.customer_wallets (
   customer_id  UUID NOT NULL REFERENCES identity.customer_profiles(customer_id),
-  wallet_id    UUID NOT NULL UNIQUE REFERENCES wallet.wallets(wallet_id),
+  wallet_id    UUID NOT NULL UNIQUE,
   wallet_role  TEXT NOT NULL,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (customer_id, wallet_id)
