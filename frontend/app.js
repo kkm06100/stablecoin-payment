@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { token: '', merchantId: '', paymentId: '', qrToken: '', wallet: null };
+const state = { token: '', merchantId: '', paymentId: '', qrToken: '', wallet: null, historyCursor: null };
 const api = () => $('baseUrl').value.replace(/\/$/, '');
 const headers = () => ({'Content-Type':'application/json', ...(state.token ? {Authorization:`Bearer ${state.token}`} : {})});
 
@@ -35,7 +35,8 @@ $('lookupQr').onclick = async () => { try { requireLogin(); const result = await
 $('confirmQr').onclick = async () => { try { requireLogin(); const result = await request('POST', `/v1/payment-qr/${state.qrToken}/confirm`); output('payment', result.data); $('status').textContent = '결제 승인 완료'; } catch (e) { showError(e); } };
 $('cancelPayment').onclick = async () => { try { requireLogin(); const result = await request('POST', `/v1/merchants/${state.merchantId}/payments/${state.paymentId}/cancel`, {}); output('payment', result.data); } catch (e) { showError(e); } };
 
-$('myPayments').onclick = async () => { try { requireLogin(); const result = await request('GET', '/v1/payments?limit=50'); output('history', result.data); } catch (e) { showError(e); } };
+$('myPayments').onclick = async () => { try { requireLogin(); state.historyCursor = null; await loadPaymentHistory(); } catch (e) { showError(e); } };
+$('nextPayments').onclick = async () => { try { requireLogin(); if (!state.historyCursor) throw new Error('다음 페이지가 없습니다'); await loadPaymentHistory(); } catch (e) { showError(e); } };
 $('paymentDetail').onclick = async () => { try { requireLogin(); const result = await request('GET', `/v1/payments/${$('paymentId').value || state.paymentId}`); output('history', result.data); } catch (e) { showError(e); } };
 $('wallet').onclick = async () => { try { requireLogin(); const result = await request('GET', '/v1/me/wallet', null, {allowError:true}); state.wallet = result.data; output('walletResult', result.data); } catch (e) { showError(e); } };
 $('copyAddress').onclick = async () => { try { const address = state.wallet?.deposit_address; if (!address) throw new Error('먼저 지갑을 조회하세요'); await navigator.clipboard.writeText(address); $('status').textContent = '지갑 주소 복사 완료'; } catch (e) { showError(e); } };
@@ -44,4 +45,13 @@ $('sendTransfer').onclick = async () => { try { requireLogin(); const key = cryp
 $('transferDetail').onclick = async () => { try { requireLogin(); const id = $('transferId').value || state.transferId; const result = await request('GET', `/v1/transfers/${id}`); output('transferResult', result.data); } catch (e) { showError(e); } };
 
 function renderQr(payload) { if (payload && window.QRCode) QRCode.toCanvas($('qrCanvas'), `${api()}${payload}`); }
+async function loadPaymentHistory() {
+  const limit = Math.min(Math.max(Number($('historyLimit').value || 20), 1), 200);
+  const query = new URLSearchParams({limit:String(limit)});
+  if (state.historyCursor) query.set('before', state.historyCursor);
+  const result = await request('GET', `/v1/payments?${query}`);
+  state.historyCursor = result.data.next_cursor || null;
+  output('history', result.data);
+  $('historyCursor').textContent = state.historyCursor ? '다음 페이지 있음' : '마지막 페이지';
+}
 $('clearLog').onclick = () => { $('log').textContent = ''; $('status').textContent = '대기 중'; };

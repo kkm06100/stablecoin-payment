@@ -29,10 +29,11 @@
   <canvas id="qrCanvas" width="220" height="220"></canvas>
 
   <h2>고객 결제내역</h2>
-  <button id="myPayments">내역 조회</button>
+  <input id="historyLimit" type="number" value="20" min="1" max="200">
+  <button id="myPayments">첫 페이지</button><button id="nextPayments">다음 페이지</button>
   <input id="paymentId" placeholder="payment id">
   <button id="paymentDetail">상세 조회</button>
-  <pre id="history"></pre>
+  <pre id="history"></pre><span id="historyCursor"></span>
 
   <h2>지갑</h2>
   <button id="wallet">지갑 조회</button><button id="copyAddress">주소 복사</button>
