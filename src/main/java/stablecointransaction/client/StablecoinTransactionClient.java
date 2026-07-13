@@ -7,6 +7,8 @@ import java.util.UUID;
 public interface StablecoinTransactionClient {
   RemoteWallet createUserWallet(String label);
 
+  RemoteWallet getWallet(UUID walletId);
+
   void registerTokenAccount(UUID walletId, String mint);
 
   RemoteTransfer createTransfer(UUID srcWalletId, UUID dstWalletId, String token,
@@ -14,7 +16,11 @@ public interface StablecoinTransactionClient {
 
   RemoteTransfer getTransfer(UUID transferId);
 
-  record RemoteWallet(@JsonProperty("wallet_id") UUID walletId, String status) {}
+  record RemoteWallet(@JsonProperty("wallet_id") UUID walletId,
+                      String label, String chain,
+                      @JsonProperty("wallet_type") String walletType,
+                      @JsonProperty("deposit_address") String depositAddress,
+                      String status) {}
 
   record RemoteTransfer(@JsonProperty("transfer_id") UUID transferId,
                         @JsonProperty("src_wallet_id") UUID srcWalletId,

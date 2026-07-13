@@ -39,6 +39,11 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
   }
 
   @Override
+  public RemoteWallet getWallet(UUID walletId) {
+    return exchange("GET", "/v1/wallets/" + walletId, "", RemoteWallet.class);
+  }
+
+  @Override
   public void registerTokenAccount(UUID walletId, String mint) {
     String body = json(new RegisterTokenAccountBody(mint));
     exchange("POST", "/v1/wallets/" + walletId + "/token-accounts", body, Object.class);

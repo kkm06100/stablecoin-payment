@@ -5,6 +5,7 @@ public final class UserAuthPaths {
   public static final String MERCHANT_PREFIX = "/v1/merchants";
   public static final String PAYMENT_QR_PREFIX = "/v1/payment-qr";
   public static final String PAYMENTS_PREFIX = "/v1/payments";
+  public static final String WALLET_PREFIX = "/v1/me/wallet";
 
   private UserAuthPaths() {}
 
@@ -12,7 +13,8 @@ public final class UserAuthPaths {
     return belongsTo(path, USER_AUTH_PREFIX)
         || belongsTo(path, MERCHANT_PREFIX)
         || belongsTo(path, PAYMENT_QR_PREFIX)
-        || belongsTo(path, PAYMENTS_PREFIX);
+        || belongsTo(path, PAYMENTS_PREFIX)
+        || belongsTo(path, WALLET_PREFIX);
   }
 
   private static boolean belongsTo(String path, String prefix) {
