@@ -17,8 +17,7 @@ import stablecointransaction.user.User;
 import stablecointransaction.user.UserRepository;
 import stablecointransaction.user.UserStatus;
 import stablecointransaction.userauth.dto.AuthTokenResponse;
-import stablecointransaction.api.dto.WalletResponse;
-import stablecointransaction.wallet.WalletService;
+import stablecointransaction.client.StablecoinTransactionClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +32,7 @@ public class UserAuthService {
   private final JwtService jwtService;
   private final RefreshTokenGenerator refreshTokenGenerator;
   private final UserAuthProperties properties;
-  private final WalletService walletService;
+  private final StablecoinTransactionClient transactionClient;
 
   public UserAuthService(UserRepository users,
                          CustomerProfileRepository customers,
@@ -43,7 +42,7 @@ public class UserAuthService {
                          JwtService jwtService,
                          RefreshTokenGenerator refreshTokenGenerator,
                          UserAuthProperties properties,
-                         WalletService walletService) {
+                         StablecoinTransactionClient transactionClient) {
     this.users = users;
     this.customers = customers;
     this.customerWallets = customerWallets;
@@ -52,7 +51,7 @@ public class UserAuthService {
     this.jwtService = jwtService;
     this.refreshTokenGenerator = refreshTokenGenerator;
     this.properties = properties;
-    this.walletService = walletService;
+    this.transactionClient = transactionClient;
   }
 
   @Transactional
@@ -68,8 +67,9 @@ public class UserAuthService {
         passwordEncoder.encode(password), UserStatus.ACTIVE, now));
     CustomerProfile customer = customers.save(new CustomerProfile(UUID.randomUUID(),
         user.getUserId(), displayName.trim(), CustomerStatus.ACTIVE, now));
-    WalletResponse wallet = walletService.createUserWallet("customer-" + customer.getCustomerId());
-    customerWallets.save(new CustomerWallet(customer.getCustomerId(), wallet.wallet_id(),
+    StablecoinTransactionClient.RemoteWallet wallet = transactionClient.createUserWallet(
+        "customer-" + customer.getCustomerId());
+    customerWallets.save(new CustomerWallet(customer.getCustomerId(), wallet.walletId(),
         CustomerWalletRoles.PRIMARY, now));
     return issueTokenPair(user, UUID.randomUUID(), now);
   }

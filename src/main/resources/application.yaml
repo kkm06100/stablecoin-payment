@@ -38,6 +38,9 @@ payment:
   qr-secret: ${PAYMENT_QR_SECRET:stablecoin-development-qr-secret-change-me}
   expiry-fixed-delay-ms: ${PAYMENT_EXPIRY_FIXED_DELAY_MS:60000}
 
+stablecoin-transaction:
+  base-url: ${STABLECOIN_TRANSACTION_URL:http://localhost:8090}
+
 solana:
   rpc-url: ${SOLANA_RPC_URL:http://localhost:8899}
 

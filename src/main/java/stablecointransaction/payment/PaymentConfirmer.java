@@ -5,8 +5,7 @@ import java.util.UUID;
 import stablecointransaction.payment.dto.PaymentResponse;
 import stablecointransaction.payment.qr.PaymentQrToken;
 import stablecointransaction.payment.qr.PaymentQrTokenRepository;
-import stablecointransaction.transfer.InternalTransfer;
-import stablecointransaction.transfer.InternalTransferService;
+import stablecointransaction.client.StablecoinTransactionClient;
 import stablecointransaction.user.CustomerProfile;
 import stablecointransaction.user.CustomerProfileRepository;
 import stablecointransaction.user.CustomerStatus;
@@ -24,20 +23,20 @@ public class PaymentConfirmer {
   private final PaymentQrTokenRepository qrTokens;
   private final CustomerProfileRepository customers;
   private final CustomerWalletRepository customerWallets;
-  private final InternalTransferService internalTransfers;
+  private final StablecoinTransactionClient transactionClient;
 
   public PaymentConfirmer(PaymentRepository payments,
                           PaymentQrLookup qrLookup,
                           PaymentQrTokenRepository qrTokens,
                           CustomerProfileRepository customers,
                           CustomerWalletRepository customerWallets,
-                          InternalTransferService internalTransfers) {
+                          StablecoinTransactionClient transactionClient) {
     this.payments = payments;
     this.qrLookup = qrLookup;
     this.qrTokens = qrTokens;
     this.customers = customers;
     this.customerWallets = customerWallets;
-    this.internalTransfers = internalTransfers;
+    this.transactionClient = transactionClient;
   }
 
   @Transactional
@@ -71,10 +70,11 @@ public class PaymentConfirmer {
     }
 
     String referenceId = PaymentConstants.TRANSFER_REFERENCE_PREFIX + payment.getPaymentId();
-    InternalTransfer transfer = internalTransfers.create(customerWallet.getWalletId(),
+    StablecoinTransactionClient.RemoteTransfer transfer = transactionClient.createTransfer(
+        customerWallet.getWalletId(),
         payment.getMerchantWalletId(), payment.getToken(), payment.getAmount(),
         referenceId, null);
-    if (payments.markPaid(payment.getPaymentId(), transfer.getTransferId(), now) != 1) {
+    if (payments.markPaid(payment.getPaymentId(), transfer.transferId(), now) != 1) {
       throw new IllegalStateException("claimed payment could not be marked paid");
     }
     if (qrTokens.markUsed(qrToken.getQrTokenId(), now) != 1) {

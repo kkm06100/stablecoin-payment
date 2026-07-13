@@ -2,12 +2,11 @@ package stablecointransaction.merchant;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import stablecointransaction.api.dto.WalletResponse;
+import stablecointransaction.client.StablecoinTransactionClient;
 import stablecointransaction.merchant.dto.MerchantResponse;
 import stablecointransaction.user.User;
 import stablecointransaction.user.UserRepository;
 import stablecointransaction.user.UserStatus;
-import stablecointransaction.wallet.WalletService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +16,18 @@ public class MerchantService {
   private final MerchantMemberRepository members;
   private final MerchantWalletRepository merchantWallets;
   private final UserRepository users;
-  private final WalletService walletService;
+  private final StablecoinTransactionClient transactionClient;
 
   public MerchantService(MerchantRepository merchants,
                          MerchantMemberRepository members,
                          MerchantWalletRepository merchantWallets,
                          UserRepository users,
-                         WalletService walletService) {
+                         StablecoinTransactionClient transactionClient) {
     this.merchants = merchants;
     this.members = members;
     this.merchantWallets = merchantWallets;
     this.users = users;
-    this.walletService = walletService;
+    this.transactionClient = transactionClient;
   }
 
   @Transactional
@@ -47,10 +46,11 @@ public class MerchantService {
     members.save(new MerchantMember(merchantId, ownerUserId, MerchantRoles.OWNER,
         MerchantMemberStatuses.ACTIVE, now));
 
-    WalletResponse wallet = walletService.createUserWallet("merchant-" + merchantId);
-    merchantWallets.save(new MerchantWallet(merchantId, wallet.wallet_id(),
+    StablecoinTransactionClient.RemoteWallet wallet = transactionClient.createUserWallet(
+        "merchant-" + merchantId);
+    merchantWallets.save(new MerchantWallet(merchantId, wallet.walletId(),
         MerchantWalletRoles.SETTLEMENT, MerchantWalletStatuses.ACTIVE, now));
-    return MerchantResponse.from(merchant, wallet.wallet_id());
+    return MerchantResponse.from(merchant, wallet.walletId());
   }
 
   @Transactional(readOnly = true)
