@@ -39,10 +39,16 @@ public class MerchantService {
       throw new MerchantAccessDeniedException("user is not active: " + ownerUserId);
     }
 
+    String normalizedBusinessNumber = normalizeBusinessNumber(businessNumber);
+    if (normalizedBusinessNumber != null
+        && merchants.findByBusinessNumber(normalizedBusinessNumber).isPresent()) {
+      throw new MerchantAlreadyExistsException(
+          "business number already registered: " + normalizedBusinessNumber);
+    }
     OffsetDateTime now = OffsetDateTime.now();
     UUID merchantId = UUID.randomUUID();
     Merchant merchant = merchants.save(new Merchant(merchantId, merchantName.trim(),
-        normalizeBusinessNumber(businessNumber), MerchantStatuses.ACTIVE, now));
+        normalizedBusinessNumber, MerchantStatuses.ACTIVE, now));
     members.save(new MerchantMember(merchantId, ownerUserId, MerchantRoles.OWNER,
         MerchantMemberStatuses.ACTIVE, now));
 

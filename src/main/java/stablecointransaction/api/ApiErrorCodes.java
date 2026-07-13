@@ -14,6 +14,7 @@ public final class ApiErrorCodes {
   public static final String INVALID_REQUEST = "INVALID_REQUEST";
   public static final String LOGIN_FAILED = "LOGIN_FAILED";
   public static final String MERCHANT_ACCESS_DENIED = "MERCHANT_ACCESS_DENIED";
+  public static final String MERCHANT_ALREADY_EXISTS = "MERCHANT_ALREADY_EXISTS";
   public static final String MERCHANT_INACTIVE = "MERCHANT_INACTIVE";
   public static final String MERCHANT_NOT_FOUND = "MERCHANT_NOT_FOUND";
   public static final String PAYMENT_ALREADY_PROCESSED = "PAYMENT_ALREADY_PROCESSED";

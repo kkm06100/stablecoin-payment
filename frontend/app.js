@@ -29,7 +29,7 @@ $('signup').onclick = () => authenticate('/v1/user-auth/signup');
 $('login').onclick = () => authenticate('/v1/user-auth/login');
 $('createMerchant').onclick = async () => {
   try {
-    const body = await request('/v1/merchants', {method:'POST', body: JSON.stringify({merchant_name:'Demo Merchant', business_number:'1234567890'})});
+    const body = await request('/v1/merchants', {method:'POST', body: JSON.stringify({merchant_name:'Demo Merchant', business_number:String(Date.now()).slice(-10)})});
     merchantId = body.merchant_id; print('merchantResult', body); show('가맹점 생성 성공');
   } catch (error) { show(error.message); }
 };

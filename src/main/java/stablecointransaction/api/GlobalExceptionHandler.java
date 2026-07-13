@@ -1,6 +1,7 @@
 package stablecointransaction.api;
 
 import stablecointransaction.merchant.MerchantAccessDeniedException;
+import stablecointransaction.merchant.MerchantAlreadyExistsException;
 import stablecointransaction.merchant.MerchantInactiveException;
 import stablecointransaction.merchant.MerchantNotFoundException;
 import stablecointransaction.payment.InvalidPaymentRequestException;
@@ -45,6 +46,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MerchantNotFoundException.class)
   public ResponseEntity<ErrorResponse> merchantNotFound(MerchantNotFoundException ex) {
     return response(404, ApiErrorCodes.MERCHANT_NOT_FOUND, ex.getMessage());
+  }
+
+  @ExceptionHandler(MerchantAlreadyExistsException.class)
+  public ResponseEntity<ErrorResponse> merchantAlreadyExists(MerchantAlreadyExistsException ex) {
+    return response(409, ApiErrorCodes.MERCHANT_ALREADY_EXISTS, ex.getMessage());
   }
 
   @ExceptionHandler(MerchantInactiveException.class)
