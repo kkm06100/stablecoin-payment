@@ -25,6 +25,19 @@ $('login').onclick = async () => { try {
   state.token = result.data.access_token; output('session', {user: result.data.user_id, authenticated:true}); $('status').textContent = '로그인 완료';
 } catch (e) { showError(e); } };
 
+$('createMerchant').onclick = async () => { try {
+  requireLogin();
+  const businessNumber = $('businessNumber').value || `demo-${Date.now()}`;
+  const result = await request('POST', '/v1/merchants', {
+    merchant_name: $('merchantName').value,
+    business_number: businessNumber
+  });
+  state.merchantId = result.data.merchant_id;
+  $('merchantId').value = state.merchantId;
+  output('payment', result.data);
+  $('status').textContent = '가맹점 생성 완료';
+} catch (e) { showError(e); } };
+
 $('createPayment').onclick = async () => { try {
   requireLogin(); if (!$('merchantId').value) throw new Error('merchant id가 필요합니다');
   state.merchantId = $('merchantId').value;
