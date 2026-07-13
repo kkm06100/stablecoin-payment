@@ -11,7 +11,8 @@ public final class UserAuthPaths {
   public static boolean isUserOwned(String path) {
     return belongsTo(path, USER_AUTH_PREFIX)
         || belongsTo(path, MERCHANT_PREFIX)
-        || belongsTo(path, PAYMENT_QR_PREFIX);
+        || belongsTo(path, PAYMENT_QR_PREFIX)
+        || belongsTo(path, PAYMENTS_PREFIX);
   }
 
   private static boolean belongsTo(String path, String prefix) {

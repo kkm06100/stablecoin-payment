@@ -11,6 +11,7 @@ class UserAuthPathsTest {
     assertThat(UserAuthPaths.isUserOwned("/v1/user-auth/login")).isTrue();
     assertThat(UserAuthPaths.isUserOwned("/v1/merchants/merchant-id/payments")).isTrue();
     assertThat(UserAuthPaths.isUserOwned("/v1/payment-qr/token")).isTrue();
+    assertThat(UserAuthPaths.isUserOwned("/v1/payments/payment-id")).isTrue();
 
     assertThat(UserAuthPaths.isUserOwned("/v1/wallets")).isFalse();
     assertThat(UserAuthPaths.isUserOwned("/v1/transfers")).isFalse();
