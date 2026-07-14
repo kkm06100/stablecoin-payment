@@ -10,6 +10,8 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.Arrays;
+import java.util.List;
 import stablecointransaction.external.port.TokenAccountRegistrar;
 import stablecointransaction.external.port.TransferGateway;
 import stablecointransaction.external.port.WalletProvisioner;
@@ -65,6 +67,13 @@ public class StablecoinTransactionRestClient {
     return exchange("GET", "/v1/transfers/" + transferId, "", TransferGateway.TransferResult.class);
   }
 
+  public List<TransferGateway.TransferResult> findTransfers(UUID walletId) {
+    String path = "/v1/transfers?wallet_id=" + walletId;
+    TransferGateway.TransferResult[] transfers = exchange(
+        "GET", path, "", TransferGateway.TransferResult[].class);
+    return transfers == null ? List.of() : Arrays.asList(transfers);
+  }
+
   private <T> T exchange(String method, String path, String body, Class<T> type) {
     String timestamp = Long.toString(System.currentTimeMillis());
     StablecoinTransactionRequestSigner.SignedHeaders headers = signer.sign(
@@ -82,7 +91,8 @@ public class StablecoinTransactionRestClient {
           .retrieve()
           .body(type);
     } catch (RestClientResponseException e) {
-      throw new StablecoinTransactionRemoteException(e.getStatusCode().value(), e);
+      throw new StablecoinTransactionRemoteException(e.getStatusCode().value(),
+          remoteCode(e.getResponseBodyAsString()), e);
     } catch (ResourceAccessException e) {
       throw new StablecoinTransactionRemoteException(503, e);
     }
@@ -93,6 +103,17 @@ public class StablecoinTransactionRestClient {
       return objectMapper.writeValueAsString(body);
     } catch (JsonProcessingException e) {
       throw new InternalApplicationException(e);
+    }
+  }
+
+  private String remoteCode(String body) {
+    if (body == null || body.isBlank()) return null;
+    try {
+      var node = objectMapper.readTree(body);
+      var code = node.get("code");
+      return code == null || !code.isTextual() ? null : code.asText();
+    } catch (JsonProcessingException ignored) {
+      return null;
     }
   }
 

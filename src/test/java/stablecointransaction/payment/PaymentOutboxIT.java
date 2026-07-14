@@ -1,6 +1,7 @@
 package stablecointransaction.payment;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -86,10 +87,7 @@ class PaymentOutboxIT {
         Integer.class, paymentId);
     org.assertj.core.api.Assertions.assertThat(pending).isEqualTo(1);
 
-    UUID transferId = UUID.randomUUID();
-    doReturn(new TransferGateway.TransferResult(
-            transferId, UUID.randomUUID(), UUID.randomUUID(), "USDC-test", BigInteger.ONE,
-            "payment_" + paymentId, "CONFIRMED"))
+    doReturn(transferFor(paymentId))
         .when(transferGateway).create(any(), any(), any(), any(), any(), any());
     outboxProcessor.processOne();
 
@@ -127,10 +125,7 @@ class PaymentOutboxIT {
 
     jdbc.update("UPDATE payment.payment_outbox SET next_attempt_at = now() WHERE payment_id = ?",
         paymentId);
-    UUID transferId = UUID.randomUUID();
-    doReturn(new TransferGateway.TransferResult(
-            transferId, UUID.randomUUID(), UUID.randomUUID(), "USDC-test", BigInteger.ONE,
-            "payment_" + paymentId, "CONFIRMED"))
+    doReturn(transferFor(paymentId))
         .when(transferGateway).create(any(), any(), any(), any(), any(), any());
 
     outboxProcessor.processOne();
@@ -141,6 +136,44 @@ class PaymentOutboxIT {
         "SELECT count(*) FROM payment.payments WHERE payment_id = ? AND status = 'PAID'",
         Integer.class, paymentId);
     org.assertj.core.api.Assertions.assertThat(paid).isEqualTo(1);
+  }
+
+  @Test
+  void recoversTransferFromWalletListAfterRemoteFailure() throws Exception {
+    Session session = signup("outbox-recovery@example.com");
+    UUID paymentId = confirmPayment(session, createMerchant(session));
+    when(transferGateway.create(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new StablecoinTransactionRemoteException(503,
+            new RuntimeException("ambiguous result")));
+    doReturn(java.util.List.of(transferFor(paymentId)))
+        .when(transferGateway).findByReference(any(), eq("payment_" + paymentId));
+
+    outboxProcessor.processOne();
+
+    org.assertj.core.api.Assertions.assertThat(outboxState(paymentId).status())
+        .isEqualTo(PaymentOutboxStatuses.SUCCEEDED);
+    Integer paid = jdbc.queryForObject(
+        "SELECT count(*) FROM payment.payments WHERE payment_id = ? AND status = 'PAID'",
+        Integer.class, paymentId);
+    org.assertj.core.api.Assertions.assertThat(paid).isEqualTo(1);
+    verify(transferGateway).findByReference(any(), eq("payment_" + paymentId));
+  }
+
+  @Test
+  void marksPaymentFailedForNonRetryableProcessingError() throws Exception {
+    Session session = signup("outbox-failed@example.com");
+    UUID paymentId = confirmPayment(session, createMerchant(session));
+    when(transferGateway.create(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new StablecoinTransactionRemoteException(400,
+            new RuntimeException("invalid transfer")));
+
+    outboxProcessor.processOne();
+
+    String status = jdbc.queryForObject(
+        "SELECT status FROM payment.payments WHERE payment_id = ?", String.class, paymentId);
+    org.assertj.core.api.Assertions.assertThat(status).isEqualTo(PaymentStatuses.FAILED);
+    org.assertj.core.api.Assertions.assertThat(outboxState(paymentId).status())
+        .isEqualTo(PaymentOutboxStatuses.DEAD);
   }
 
   @Test
@@ -207,6 +240,17 @@ class PaymentOutboxIT {
             + "WHERE payment_id = ?",
         (rs, rowNum) -> new OutboxState(rs.getString("status"),
             rs.getInt("attempt_count"), rs.getObject("next_attempt_at", OffsetDateTime.class)),
+        paymentId);
+  }
+
+  private TransferGateway.TransferResult transferFor(UUID paymentId) {
+    return jdbc.queryForObject(
+        "SELECT customer_wallet_id, merchant_wallet_id, token, amount FROM payment.payments "
+            + "WHERE payment_id = ?",
+        (rs, rowNum) -> new TransferGateway.TransferResult(
+            UUID.randomUUID(), rs.getObject("customer_wallet_id", UUID.class),
+            rs.getObject("merchant_wallet_id", UUID.class), rs.getString("token"),
+            rs.getBigDecimal("amount").toBigInteger(), "payment_" + paymentId, "CONFIRMED"),
         paymentId);
   }
 

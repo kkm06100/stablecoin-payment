@@ -89,8 +89,23 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(StablecoinTransactionRemoteException.class)
   public ResponseEntity<ErrorResponse> transactionRemote(StablecoinTransactionRemoteException ex) {
+    String code = ex.getRemoteCode();
+    if (code != null && isKnownRemoteCode(code)) {
+      return response(ex.getStatus(), code, ex.getMessage());
+    }
     int status = ex.getStatus() >= 400 && ex.getStatus() < 500 ? ex.getStatus() : 502;
     return response(status, ApiErrorCodes.STABLECOIN_TRANSACTION_FAILED, ex.getMessage());
+  }
+
+  private boolean isKnownRemoteCode(String code) {
+    return switch (code) {
+      case ApiErrorCodes.ACCOUNT_FROZEN, ApiErrorCodes.INSUFFICIENT_BALANCE,
+          ApiErrorCodes.INVALID_ADDRESS, ApiErrorCodes.POLICY_DENIED,
+          ApiErrorCodes.SELF_TRANSFER_NOT_ALLOWED, ApiErrorCodes.UNSUPPORTED_TOKEN,
+          ApiErrorCodes.TRANSFER_NOT_FOUND, ApiErrorCodes.WALLET_NOT_FOUND,
+          ApiErrorCodes.WALLET_NOT_USER, ApiErrorCodes.BAD_REQUEST -> true;
+      default -> false;
+    };
   }
 
   private ResponseEntity<ErrorResponse> response(int status, String code, String message) {

@@ -1,6 +1,7 @@
 package stablecointransaction.payment.component;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import stablecointransaction.external.port.TransferGateway;
 import stablecointransaction.payment.PaymentRepository;
 import stablecointransaction.payment.Payment;
@@ -27,6 +28,7 @@ public class PaymentCompletionProcessor {
                          java.util.UUID paymentId, java.util.UUID qrTokenId,
                          OffsetDateTime now) {
     Payment current = payments.findById(paymentId).orElseThrow(PaymentProcessingException::new);
+    validateTransfer(current, transfer);
     if (!PaymentStatuses.PAID.equals(current.getStatus())
         && payments.markPaid(paymentId, transfer.transferId(), now) != 1) {
       throw new PaymentProcessingException();
@@ -36,5 +38,22 @@ public class PaymentCompletionProcessor {
       throw new PaymentProcessingException();
     }
     return payments.findById(paymentId).orElseThrow(PaymentNotFoundException::new);
+  }
+
+  private void validateTransfer(Payment payment, TransferGateway.TransferResult transfer) {
+    String reference = stablecointransaction.payment.PaymentConstants.TRANSFER_REFERENCE_PREFIX
+        + payment.getPaymentId();
+    boolean completed = "CONFIRMED".equals(transfer.status())
+        || "COMPLETED".equals(transfer.status())
+        || "PAID".equals(transfer.status());
+    if (transfer.transferId() == null
+        || !Objects.equals(payment.getCustomerWalletId(), transfer.sourceWalletId())
+        || !Objects.equals(payment.getMerchantWalletId(), transfer.destinationWalletId())
+        || !payment.getToken().equals(transfer.token())
+        || !payment.getAmount().equals(transfer.amount())
+        || !reference.equals(transfer.referenceId())
+        || !completed) {
+      throw new PaymentProcessingException();
+    }
   }
 }

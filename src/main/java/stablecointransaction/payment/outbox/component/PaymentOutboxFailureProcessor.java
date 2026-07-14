@@ -6,6 +6,7 @@ import stablecointransaction.external.exception.StablecoinTransactionRemoteExcep
 import stablecointransaction.exception.InternalApplicationException;
 import stablecointransaction.payment.outbox.PaymentOutbox;
 import stablecointransaction.payment.outbox.PaymentOutboxRepository;
+import stablecointransaction.payment.PaymentRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentOutboxFailureProcessor {
   private static final int MAX_ATTEMPTS = 3;
   private final PaymentOutboxRepository outbox;
+  private final PaymentRepository payments;
 
-  public PaymentOutboxFailureProcessor(PaymentOutboxRepository outbox) {
+  public PaymentOutboxFailureProcessor(PaymentOutboxRepository outbox, PaymentRepository payments) {
     this.outbox = outbox;
+    this.payments = payments;
   }
 
   @Transactional
@@ -26,8 +29,18 @@ public class PaymentOutboxFailureProcessor {
       current.markFailed(error.getMessage(), now.plus(Duration.ofSeconds(delaySeconds)), now);
     } else {
       current.markDead(error.getMessage(), now);
+      if (!retryable(error)) {
+        payments.markFailed(current.getPaymentId(), failureCode(error), now);
+      }
     }
     outbox.saveAndFlush(current);
+  }
+
+  private String failureCode(Exception error) {
+    if (error instanceof StablecoinTransactionRemoteException remote) {
+      return "REMOTE_" + remote.getStatus();
+    }
+    return "PAYMENT_PROCESSING_FAILED";
   }
 
   private boolean retryable(Exception error) {

@@ -2,6 +2,7 @@ package stablecointransaction.external.adapter;
 
 import java.math.BigInteger;
 import java.util.UUID;
+import java.util.List;
 import stablecointransaction.external.port.TransferGateway;
 import org.springframework.stereotype.Component;
 
@@ -22,5 +23,12 @@ public class TransferGatewayAdapter implements TransferGateway {
   @Override
   public TransferResult getTransfer(UUID transferId) {
     return client.getTransfer(transferId);
+  }
+
+  @Override
+  public List<TransferResult> findByReference(UUID walletId, String referenceId) {
+    return client.findTransfers(walletId).stream()
+        .filter(transfer -> referenceId.equals(transfer.referenceId()))
+        .toList();
   }
 }

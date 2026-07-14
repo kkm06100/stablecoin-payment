@@ -73,6 +73,15 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
                @Param("now") OffsetDateTime now);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("update Payment p set p.status = '" + PaymentStatuses.FAILED
+       + "', p.failureCode = :failureCode, p.updatedAt = :now "
+       + "where p.paymentId = :paymentId and p.status = '"
+       + PaymentStatuses.PROCESSING + "'")
+  int markFailed(@Param("paymentId") UUID paymentId,
+                 @Param("failureCode") String failureCode,
+                 @Param("now") OffsetDateTime now);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("update Payment p set p.status = '" + PaymentStatuses.EXPIRED
        + "', p.updatedAt = :now where p.status = '" + PaymentStatuses.CREATED
        + "' and p.expiresAt <= :now")

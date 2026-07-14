@@ -59,7 +59,7 @@ class StablecoinTransactionRestClientTest {
             "operator-1", "abcd", "timestamp-1")));
 
     TransferGateway.TransferResult result = client.create(
-        src, dst, "USDC", java.math.BigInteger.valueOf(12), "ref", null);
+        src, dst, "USDC", java.math.BigInteger.valueOf(12), "ref", "payment order order-1");
     assertNotNull(result);
     assertEquals("POST", observed[0]);
     assertEquals("operator-1", observed[1]);
@@ -67,6 +67,7 @@ class StablecoinTransactionRestClientTest {
     assertEquals("abcd", observed[3]);
     assertEquals(true, observed[4].contains(src.toString()));
     assertEquals(true, observed[4].contains(dst.toString()));
+    assertEquals(true, observed[4].contains("payment order order-1"));
     assertEquals(transfer, result.transferId());
     assertEquals("USDC", result.token());
   }

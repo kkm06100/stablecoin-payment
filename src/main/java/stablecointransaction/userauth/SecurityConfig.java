@@ -36,6 +36,8 @@ public class SecurityConfig {
             .requestMatchers(UserAuthPaths.USER_AUTH_PREFIX + "/**").permitAll()
             .requestMatchers(HttpMethod.GET, UserAuthPaths.PAYMENT_QR_PREFIX + "/**").permitAll()
             .requestMatchers(UserAuthPaths.MERCHANT_PREFIX + "/**").authenticated()
+            .requestMatchers(UserAuthPaths.PAYMENTS_PREFIX + "/**").authenticated()
+            .requestMatchers(UserAuthPaths.WALLET_PREFIX + "/**").authenticated()
             .requestMatchers(HttpMethod.POST, UserAuthPaths.PAYMENT_QR_PREFIX + "/**")
                 .authenticated()
             .anyRequest().permitAll())

@@ -159,6 +159,21 @@ class MerchantPaymentControllerIT {
         .andExpect(status().isUnauthorized());
   }
 
+  @Test
+  void requiresAuthenticationForCustomerPaymentHistory() throws Exception {
+    mvc.perform(get("/v1/payments"))
+        .andExpect(status().isUnauthorized());
+
+    mvc.perform(get("/v1/payments/{paymentId}", UUID.randomUUID()))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void requiresAuthenticationForCustomerWallet() throws Exception {
+    mvc.perform(get("/v1/me/wallet"))
+        .andExpect(status().isUnauthorized());
+  }
+
   private Session signup(String email) throws Exception {
     String response = mvc.perform(post("/v1/user-auth/signup")
             .contentType(MediaType.APPLICATION_JSON)

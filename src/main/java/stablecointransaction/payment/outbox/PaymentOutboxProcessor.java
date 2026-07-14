@@ -11,6 +11,8 @@ import stablecointransaction.payment.outbox.component.PaymentOutboxFailureProces
 import stablecointransaction.payment.outbox.component.PaymentOutboxResultProcessor;
 import stablecointransaction.payment.component.PaymentTransferProcessor;
 import stablecointransaction.payment.exception.PaymentProcessingException;
+import stablecointransaction.payment.PaymentConstants;
+import stablecointransaction.external.exception.StablecoinTransactionRemoteException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -38,8 +40,9 @@ public class PaymentOutboxProcessor {
     Optional<PaymentOutbox> claimed = claimProcessor.claimNext(now);
     if (claimed.isEmpty()) return;
     PaymentOutbox event = claimed.get();
+    Payment payment = null;
     try {
-      Payment payment = payments.findById(event.getPaymentId())
+      payment = payments.findById(event.getPaymentId())
           .orElseThrow(PaymentProcessingException::new);
       if (payment.getCustomerWalletId() == null) {
         throw new PaymentProcessingException();
@@ -48,7 +51,26 @@ public class PaymentOutboxProcessor {
           payment, payment.getCustomerWalletId());
       resultProcessor.succeeded(event, transfer, OffsetDateTime.now());
     } catch (Exception error) {
+      if (error instanceof StablecoinTransactionRemoteException remote
+          && (remote.getStatus() == 429 || remote.getStatus() >= 500)) {
+        try {
+          String reference = PaymentConstants.TRANSFER_REFERENCE_PREFIX + event.getPaymentId();
+          var recovered = transferProcessor.findByReference(
+              paymentWallet(payment), reference).stream().findFirst();
+          if (recovered.isPresent()) {
+            resultProcessor.succeeded(event, recovered.get(), OffsetDateTime.now());
+            return;
+          }
+        } catch (Exception recoveryError) {
+          error.addSuppressed(recoveryError);
+        }
+      }
       failureProcessor.failed(event, error, OffsetDateTime.now());
     }
+  }
+
+  private java.util.UUID paymentWallet(Payment payment) {
+    if (payment.getCustomerWalletId() == null) throw new PaymentProcessingException();
+    return payment.getCustomerWalletId();
   }
 }
