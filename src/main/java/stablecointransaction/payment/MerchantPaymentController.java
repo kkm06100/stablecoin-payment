@@ -1,5 +1,8 @@
 package stablecointransaction.payment;
 
+import stablecointransaction.payment.service.PaymentCreationService;
+import stablecointransaction.payment.service.MerchantPaymentQueryService;
+
 import jakarta.validation.Valid;
 import java.util.UUID;
 import java.time.OffsetDateTime;
@@ -22,9 +25,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping(UserAuthPaths.MERCHANT_PREFIX + "/{merchantId}/payments")
 public class MerchantPaymentController {
   private final PaymentCreationService creator;
-  private final PaymentQueryService queries;
+  private final MerchantPaymentQueryService queries;
 
-  public MerchantPaymentController(PaymentCreationService creator, PaymentQueryService queries) {
+  public MerchantPaymentController(PaymentCreationService creator, MerchantPaymentQueryService queries) {
     this.creator = creator;
     this.queries = queries;
   }

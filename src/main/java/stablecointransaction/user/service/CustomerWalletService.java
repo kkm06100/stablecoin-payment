@@ -1,7 +1,9 @@
-package stablecointransaction.user;
+package stablecointransaction.user.service;
+
+import stablecointransaction.user.*;
 
 import java.util.UUID;
-import stablecointransaction.client.StablecoinTransactionClient;
+import stablecointransaction.external.port.WalletReader;
 import stablecointransaction.user.exception.CustomerNotFoundException;
 import stablecointransaction.user.exception.CustomerWalletNotFoundException;
 import org.springframework.stereotype.Service;
@@ -11,14 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerWalletService {
   private final CustomerProfileRepository customers;
   private final CustomerWalletRepository wallets;
-  private final StablecoinTransactionClient transactionClient;
+  private final WalletReader walletReader;
 
   public CustomerWalletService(CustomerProfileRepository customers,
                                CustomerWalletRepository wallets,
-                               StablecoinTransactionClient transactionClient) {
+                               WalletReader walletReader) {
     this.customers = customers;
     this.wallets = wallets;
-    this.transactionClient = transactionClient;
+    this.walletReader = walletReader;
   }
 
   @Transactional(readOnly = true)
@@ -28,6 +30,6 @@ public class CustomerWalletService {
         .getCustomerId();
     CustomerWallet wallet = wallets.findByCustomerIdAndWalletRole(customerId, "PRIMARY")
         .orElseThrow(CustomerWalletNotFoundException::new);
-    return CustomerWalletResponse.from(wallet, transactionClient.getWallet(wallet.getWalletId()));
+    return CustomerWalletResponse.from(wallet, walletReader.get(wallet.getWalletId()));
   }
 }

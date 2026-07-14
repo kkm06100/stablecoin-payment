@@ -1,7 +1,8 @@
-package stablecointransaction.client;
+package stablecointransaction.external.adapter;
 
-import stablecointransaction.client.exception.StablecoinTransactionRemoteException;
+import stablecointransaction.external.exception.StablecoinTransactionRemoteException;
 import stablecointransaction.exception.InternalApplicationException;
+import stablecointransaction.external.StablecoinTransactionClientProperties;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,15 +10,17 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import stablecointransaction.client.StablecoinTransactionClient.RemoteTransfer;
-import stablecointransaction.client.StablecoinTransactionClient.RemoteWallet;
+import stablecointransaction.external.port.TokenAccountRegistrar;
+import stablecointransaction.external.port.TransferGateway;
+import stablecointransaction.external.port.WalletProvisioner;
+import stablecointransaction.external.port.WalletReader;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
-public class StablecoinTransactionRestClient implements StablecoinTransactionClient {
+public class StablecoinTransactionRestClient {
   private static final String OPERATOR_ID = "x-nw-operator-id";
   private static final String TIMESTAMP = "x-nw-timestamp";
   private static final String SIGNATURE = "x-nw-signature";
@@ -35,35 +38,30 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
     this.signer = signer;
   }
 
-  @Override
-  public RemoteWallet createUserWallet(String label) {
+  public WalletProvisioner.ProvisionedWallet create(String label) {
     String body = json(new CreateWalletBody(label));
-    return exchange("POST", "/v1/wallets", body, RemoteWallet.class);
+    return exchange("POST", "/v1/wallets", body, WalletProvisioner.ProvisionedWallet.class);
   }
 
-  @Override
-  public RemoteWallet getWallet(UUID walletId) {
-    return exchange("GET", "/v1/wallets/" + walletId, "", RemoteWallet.class);
+  public WalletReader.WalletDetails get(UUID walletId) {
+    return exchange("GET", "/v1/wallets/" + walletId, "", WalletReader.WalletDetails.class);
   }
 
-  @Override
-  public void registerTokenAccount(UUID walletId, String mint) {
+  public void register(UUID walletId, String mint) {
     String body = json(new RegisterTokenAccountBody(mint));
     exchange("POST", "/v1/wallets/" + walletId + "/token-accounts", body, Object.class);
   }
 
-  @Override
-  public RemoteTransfer createTransfer(UUID srcWalletId, UUID dstWalletId,
-                                       String token, BigInteger amount,
-                                       String referenceId, String memo) {
+  public TransferGateway.TransferResult create(UUID srcWalletId, UUID dstWalletId,
+                                               String token, BigInteger amount,
+                                               String referenceId, String memo) {
     String body = json(new CreateTransferBody(srcWalletId, dstWalletId, token,
         amount, referenceId, memo));
-    return exchange("POST", "/v1/transfers", body, RemoteTransfer.class);
+    return exchange("POST", "/v1/transfers", body, TransferGateway.TransferResult.class);
   }
 
-  @Override
-  public RemoteTransfer getTransfer(UUID transferId) {
-    return exchange("GET", "/v1/transfers/" + transferId, "", RemoteTransfer.class);
+  public TransferGateway.TransferResult getTransfer(UUID transferId) {
+    return exchange("GET", "/v1/transfers/" + transferId, "", TransferGateway.TransferResult.class);
   }
 
   private <T> T exchange(String method, String path, String body, Class<T> type) {

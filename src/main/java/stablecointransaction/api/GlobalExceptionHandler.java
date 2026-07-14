@@ -1,7 +1,7 @@
 package stablecointransaction.api;
 
 import stablecointransaction.exception.ApplicationException;
-import stablecointransaction.client.exception.StablecoinTransactionRemoteException;
+import stablecointransaction.external.exception.StablecoinTransactionRemoteException;
 import stablecointransaction.merchant.exception.*;
 import stablecointransaction.payment.exception.*;
 import stablecointransaction.user.exception.*;

@@ -1,4 +1,4 @@
-package stablecointransaction.client;
+package stablecointransaction.external.adapter;
 
 public interface StablecoinTransactionRequestSigner {
   SignedHeaders sign(String method, String pathAndQuery, byte[] body, String timestamp);

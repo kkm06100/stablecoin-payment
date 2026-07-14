@@ -1,5 +1,10 @@
 package stablecointransaction.userauth;
 
+import stablecointransaction.userauth.service.LoginService;
+import stablecointransaction.userauth.service.LogoutService;
+import stablecointransaction.userauth.service.RefreshTokenService;
+import stablecointransaction.userauth.service.SignupService;
+
 import jakarta.validation.Valid;
 import stablecointransaction.userauth.dto.AuthTokenResponse;
 import stablecointransaction.userauth.dto.LoginRequest;
@@ -14,30 +19,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(UserAuthPaths.USER_AUTH_PREFIX)
 public class UserAuthController {
-  private final UserAuthService service;
+  private final SignupService signupService;
+  private final LoginService loginService;
+  private final RefreshTokenService refreshService;
+  private final LogoutService logoutService;
 
-  public UserAuthController(UserAuthService service) {
-    this.service = service;
+  public UserAuthController(SignupService signupService, LoginService loginService,
+                            RefreshTokenService refreshService, LogoutService logoutService) {
+    this.signupService = signupService;
+    this.loginService = loginService;
+    this.refreshService = refreshService;
+    this.logoutService = logoutService;
   }
 
   @PostMapping("/signup")
   public AuthTokenResponse signup(@Valid @RequestBody SignupRequest request) {
-    return service.signup(request.email(), request.password(), request.display_name());
+    return signupService.signup(request.email(), request.password(), request.display_name());
   }
 
   @PostMapping("/login")
   public AuthTokenResponse login(@Valid @RequestBody LoginRequest request) {
-    return service.login(request.email(), request.password());
+    return loginService.login(request.email(), request.password());
   }
 
   @PostMapping("/refresh")
   public AuthTokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
-    return service.refresh(request.refresh_token());
+    return refreshService.refresh(request.refresh_token());
   }
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
-    service.logout(request.refresh_token());
+    logoutService.logout(request.refresh_token());
     return ResponseEntity.noContent().build();
   }
 }

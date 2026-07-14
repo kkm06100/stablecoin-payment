@@ -1,4 +1,4 @@
-package stablecointransaction.client;
+package stablecointransaction.external.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,6 +8,8 @@ import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import stablecointransaction.external.port.TransferGateway;
+import stablecointransaction.external.StablecoinTransactionClientProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,12 +53,12 @@ class StablecoinTransactionRestClientTest {
 
     StablecoinTransactionClientProperties properties = new StablecoinTransactionClientProperties();
     properties.setBaseUrl("http://localhost:" + server.getAddress().getPort());
-    StablecoinTransactionClient client = new StablecoinTransactionRestClient(
+    TransferGateway client = new TransferGatewayAdapter(new StablecoinTransactionRestClient(
         RestClient.builder(), new ObjectMapper(), properties,
         (method, path, body, timestamp) -> new StablecoinTransactionRequestSigner.SignedHeaders(
-            "operator-1", "abcd", "timestamp-1"));
+            "operator-1", "abcd", "timestamp-1")));
 
-    StablecoinTransactionClient.RemoteTransfer result = client.createTransfer(
+    TransferGateway.TransferResult result = client.create(
         src, dst, "USDC", java.math.BigInteger.valueOf(12), "ref", null);
     assertNotNull(result);
     assertEquals("POST", observed[0]);

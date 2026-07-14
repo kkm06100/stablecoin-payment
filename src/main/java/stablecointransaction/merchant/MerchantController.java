@@ -1,5 +1,8 @@
 package stablecointransaction.merchant;
 
+import stablecointransaction.merchant.service.MerchantCreationService;
+import stablecointransaction.merchant.service.MerchantQueryService;
+
 import jakarta.validation.Valid;
 import java.util.UUID;
 import stablecointransaction.merchant.dto.CreateMerchantRequest;
@@ -18,22 +21,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(UserAuthPaths.MERCHANT_PREFIX)
 public class MerchantController {
-  private final MerchantService service;
+  private final MerchantCreationService creator;
+  private final MerchantQueryService queries;
 
-  public MerchantController(MerchantService service) {
-    this.service = service;
+  public MerchantController(MerchantCreationService creator, MerchantQueryService queries) {
+    this.creator = creator;
+    this.queries = queries;
   }
 
   @PostMapping
   public MerchantResponse create(@AuthenticationPrincipal Jwt jwt,
                                  @Valid @RequestBody CreateMerchantRequest request) {
     UUID userId = UserPrincipal.from(jwt).userId();
-    return service.create(userId, request.merchant_name(), request.business_number());
+    return creator.create(userId, request.merchant_name(), request.business_number());
   }
 
   @GetMapping("/{merchantId}")
   public MerchantResponse get(@AuthenticationPrincipal Jwt jwt,
                               @PathVariable UUID merchantId) {
-    return service.get(UserPrincipal.from(jwt).userId(), merchantId);
+    return queries.get(UserPrincipal.from(jwt).userId(), merchantId);
   }
 }

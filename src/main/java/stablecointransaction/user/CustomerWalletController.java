@@ -1,5 +1,7 @@
 package stablecointransaction.user;
 
+import stablecointransaction.user.service.CustomerWalletService;
+
 import stablecointransaction.userauth.UserAuthPaths;
 import stablecointransaction.userauth.UserPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

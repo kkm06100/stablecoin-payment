@@ -1,4 +1,4 @@
-package stablecointransaction.client;
+package stablecointransaction.external.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;

@@ -1,5 +1,7 @@
 package stablecointransaction.payment;
 
+import stablecointransaction.payment.service.CustomerPaymentQueryService;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import stablecointransaction.payment.dto.PaymentListResponse;
@@ -17,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(UserAuthPaths.PAYMENTS_PREFIX)
 public class CustomerPaymentController {
-  private final PaymentQueryService queries;
+  private final CustomerPaymentQueryService queries;
 
-  public CustomerPaymentController(PaymentQueryService queries) {
+  public CustomerPaymentController(CustomerPaymentQueryService queries) {
     this.queries = queries;
   }
 
@@ -27,12 +29,12 @@ public class CustomerPaymentController {
   public PaymentListResponse list(@AuthenticationPrincipal Jwt jwt,
                                   @RequestParam(required = false) OffsetDateTime before,
                                   @RequestParam(defaultValue = "50") int limit) {
-    return queries.listForCustomer(UserPrincipal.from(jwt).userId(), before, limit);
+    return queries.list(UserPrincipal.from(jwt).userId(), before, limit);
   }
 
   @GetMapping("/{paymentId}")
   public PaymentResponse get(@AuthenticationPrincipal Jwt jwt,
                              @PathVariable UUID paymentId) {
-    return queries.getForCustomer(UserPrincipal.from(jwt).userId(), paymentId);
+    return queries.get(UserPrincipal.from(jwt).userId(), paymentId);
   }
 }

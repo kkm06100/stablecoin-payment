@@ -1,4 +1,4 @@
-package stablecointransaction.client.exception;
+package stablecointransaction.external.exception;
 
 import stablecointransaction.exception.ApplicationException;
 
