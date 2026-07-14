@@ -16,10 +16,11 @@ public class PaymentOutboxWriter {
     this.outbox = outbox;
   }
 
-  public PaymentOutbox writeTransfer(Payment payment, OffsetDateTime now) {
+  public PaymentOutbox writeTransfer(Payment payment, java.util.UUID qrTokenId, OffsetDateTime now) {
     String idempotencyKey = "payment_" + payment.getPaymentId();
     return outbox.save(new PaymentOutbox(
-        UUID.randomUUID(), payment.getPaymentId(), PaymentOutboxStatuses.PAYMENT_TRANSFER,
-        idempotencyKey, "{\"payment_id\":\"" + payment.getPaymentId() + "\"}", now));
+        UUID.randomUUID(), payment.getPaymentId(), qrTokenId, PaymentOutboxStatuses.PAYMENT_TRANSFER,
+        idempotencyKey, "{\"payment_id\":\"" + payment.getPaymentId()
+            + "\",\"qr_token_id\":\"" + qrTokenId + "\"}", now));
   }
 }

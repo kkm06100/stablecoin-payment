@@ -25,7 +25,7 @@ public class PaymentOutboxFailureProcessor {
       long delaySeconds = 1L << Math.max(0, current.getAttemptCount() - 1);
       current.markFailed(error.getMessage(), now.plus(Duration.ofSeconds(delaySeconds)), now);
     } else {
-      current.markFailed(error.getMessage(), now, now);
+      current.markDead(error.getMessage(), now);
     }
     outbox.saveAndFlush(current);
   }

@@ -11,6 +11,7 @@ import stablecointransaction.external.StablecoinTransactionClientProperties;
 import stablecointransaction.merchant.outbox.component.MerchantOutboxClaimProcessor;
 import stablecointransaction.merchant.outbox.component.MerchantOutboxFailureProcessor;
 import stablecointransaction.merchant.outbox.component.MerchantOutboxResultProcessor;
+import stablecointransaction.merchant.outbox.MerchantOutboxRepository;
 import stablecointransaction.merchant.exception.MerchantProvisioningException;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ public class MerchantOutboxProcessor {
   private final WalletProvisioner walletProvisioner;
   private final TokenAccountRegistrar tokenAccounts;
   private final StablecoinTransactionClientProperties properties;
+  private final MerchantOutboxRepository outboxes;
 
   public MerchantOutboxProcessor(MerchantOutboxClaimProcessor claimProcessor,
                                  MerchantOutboxResultProcessor resultProcessor,
@@ -30,7 +32,8 @@ public class MerchantOutboxProcessor {
                                  MerchantRepository merchants,
                                  WalletProvisioner walletProvisioner,
                                  TokenAccountRegistrar tokenAccounts,
-                                 StablecoinTransactionClientProperties properties) {
+                                 StablecoinTransactionClientProperties properties,
+                                 MerchantOutboxRepository outboxes) {
     this.claimProcessor = claimProcessor;
     this.resultProcessor = resultProcessor;
     this.failureProcessor = failureProcessor;
@@ -38,6 +41,7 @@ public class MerchantOutboxProcessor {
     this.walletProvisioner = walletProvisioner;
     this.tokenAccounts = tokenAccounts;
     this.properties = properties;
+    this.outboxes = outboxes;
   }
 
   public void processOne() {
@@ -47,10 +51,16 @@ public class MerchantOutboxProcessor {
     try {
       Merchant merchant = merchants.findById(outbox.getMerchantId())
           .orElseThrow(() -> new MerchantProvisioningException());
-      WalletProvisioner.ProvisionedWallet wallet = walletProvisioner.create(
-          "merchant-" + merchant.getMerchantId());
-      tokenAccounts.register(wallet.walletId(), properties.getUsdcTestMint());
-      resultProcessor.succeeded(outbox, wallet.walletId(), OffsetDateTime.now());
+      UUID walletId = outbox.getWalletId();
+      if (walletId == null) {
+        WalletProvisioner.ProvisionedWallet wallet = walletProvisioner.create(
+            "merchant-" + merchant.getMerchantId());
+        walletId = wallet.walletId();
+        outbox.markWalletProvisioned(walletId, OffsetDateTime.now());
+        outboxes.saveAndFlush(outbox);
+      }
+      tokenAccounts.register(walletId, properties.getUsdcTestMint());
+      resultProcessor.succeeded(outbox, walletId, OffsetDateTime.now());
     } catch (Exception error) {
       failureProcessor.failed(outbox, error, OffsetDateTime.now());
     }

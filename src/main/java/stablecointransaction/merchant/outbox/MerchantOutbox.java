@@ -51,6 +51,7 @@ public class MerchantOutbox {
   }
 
   public UUID getMerchantId() { return merchantId; }
+  public UUID getWalletId() { return walletId; }
   public String getStatus() { return status; }
   public int getAttemptCount() { return attemptCount; }
 
@@ -73,6 +74,18 @@ public class MerchantOutbox {
     status = MerchantOutboxStatuses.FAILED;
     lastError = error;
     this.nextAttemptAt = nextAttemptAt;
+    lockedAt = null;
+    updatedAt = now;
+  }
+
+  public void markWalletProvisioned(UUID walletId, OffsetDateTime now) {
+    this.walletId = walletId;
+    this.updatedAt = now;
+  }
+
+  public void markDead(String error, OffsetDateTime now) {
+    status = MerchantOutboxStatuses.DEAD;
+    lastError = error;
     lockedAt = null;
     updatedAt = now;
   }

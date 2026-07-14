@@ -17,6 +17,8 @@ public class PaymentOutbox {
   private UUID eventId;
   @Column(name = "payment_id", nullable = false)
   private UUID paymentId;
+  @Column(name = "qr_token_id", nullable = false)
+  private UUID qrTokenId;
   @Column(name = "event_type", nullable = false)
   private String eventType;
   @Column(name = "idempotency_key", nullable = false, unique = true)
@@ -43,10 +45,11 @@ public class PaymentOutbox {
 
   protected PaymentOutbox() {}
 
-  public PaymentOutbox(UUID eventId, UUID paymentId, String eventType,
+  public PaymentOutbox(UUID eventId, UUID paymentId, UUID qrTokenId, String eventType,
                        String idempotencyKey, String payload, OffsetDateTime now) {
     this.eventId = eventId;
     this.paymentId = paymentId;
+    this.qrTokenId = qrTokenId;
     this.eventType = eventType;
     this.idempotencyKey = idempotencyKey;
     this.payload = payload;
@@ -59,6 +62,7 @@ public class PaymentOutbox {
 
   public UUID getEventId() { return eventId; }
   public UUID getPaymentId() { return paymentId; }
+  public UUID getQrTokenId() { return qrTokenId; }
   public String getStatus() { return status; }
   public int getAttemptCount() { return attemptCount; }
   public OffsetDateTime getNextAttemptAt() { return nextAttemptAt; }
@@ -83,6 +87,13 @@ public class PaymentOutbox {
     status = PaymentOutboxStatuses.FAILED;
     lastError = error;
     this.nextAttemptAt = nextAttemptAt;
+    lockedAt = null;
+    updatedAt = now;
+  }
+
+  public void markDead(String error, OffsetDateTime now) {
+    status = PaymentOutboxStatuses.DEAD;
+    lastError = error;
     lockedAt = null;
     updatedAt = now;
   }

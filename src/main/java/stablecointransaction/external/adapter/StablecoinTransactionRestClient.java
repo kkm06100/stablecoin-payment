@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 
 @Component
 public class StablecoinTransactionRestClient {
@@ -82,6 +83,8 @@ public class StablecoinTransactionRestClient {
           .body(type);
     } catch (RestClientResponseException e) {
       throw new StablecoinTransactionRemoteException(e.getStatusCode().value(), e);
+    } catch (ResourceAccessException e) {
+      throw new StablecoinTransactionRemoteException(503, e);
     }
   }
 

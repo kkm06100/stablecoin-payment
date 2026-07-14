@@ -21,10 +21,12 @@ public class MerchantOutboxFailureProcessor {
     boolean retryable = error instanceof StablecoinTransactionRemoteException remote
         && (remote.getStatus() == 429 || remote.getStatus() >= 500)
         && !(error instanceof InternalApplicationException);
-    OffsetDateTime next = retryable && outbox.getAttemptCount() < MAX_ATTEMPTS
-        ? now.plusSeconds((long) Math.pow(2, outbox.getAttemptCount() - 1))
-        : now.plusYears(100);
-    outbox.markFailed(error.getMessage(), next, now);
+    if (retryable && outbox.getAttemptCount() < MAX_ATTEMPTS) {
+      OffsetDateTime next = now.plusSeconds(1L << Math.max(0, outbox.getAttemptCount() - 1));
+      outbox.markFailed(error.getMessage(), next, now);
+    } else {
+      outbox.markDead(error.getMessage(), now);
+    }
     outboxes.save(outbox);
   }
 }

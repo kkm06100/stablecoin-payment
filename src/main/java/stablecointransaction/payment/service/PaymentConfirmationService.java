@@ -41,7 +41,7 @@ public class PaymentConfirmationService {
     PaymentConfirmationValidator.ValidatedPayment validated =
         validator.validate(userId, rawToken, now);
     claimProcessor.claim(validated.payment(), validated.customerId(), validated.walletId(), now);
-    outboxWriter.writeTransfer(validated.payment(), now);
+    outboxWriter.writeTransfer(validated.payment(), validated.qrToken().getQrTokenId(), now);
     return PaymentResponse.withStatus(validated.payment(), PaymentStatuses.PROCESSING, null);
   }
 }
