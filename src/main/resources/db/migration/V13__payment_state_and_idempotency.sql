@@ -1,15 +1,3 @@
-CREATE TABLE payment.payment_status_histories (
-  history_id  UUID PRIMARY KEY,
-  payment_id  UUID NOT NULL REFERENCES payment.payments(payment_id),
-  from_status TEXT,
-  to_status   TEXT NOT NULL,
-  reason      TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_payment_status_histories_payment
-  ON payment.payment_status_histories (payment_id, created_at DESC, history_id DESC);
-
 CREATE TABLE payment.idempotency_requests (
   request_id   UUID PRIMARY KEY,
   user_id      UUID NOT NULL REFERENCES identity.users(user_id),
