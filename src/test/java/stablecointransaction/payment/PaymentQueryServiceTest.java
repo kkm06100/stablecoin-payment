@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
-import stablecointransaction.merchant.MerchantAuthorization;
 import stablecointransaction.user.CustomerProfile;
 import stablecointransaction.user.CustomerProfileRepository;
 import stablecointransaction.user.CustomerStatus;
@@ -27,10 +26,9 @@ import stablecointransaction.user.CustomerStatus;
 @ExtendWith(MockitoExtension.class)
 class PaymentQueryServiceTest {
   @Mock PaymentRepository payments;
-  @Mock MerchantAuthorization authorization;
   @Mock CustomerProfileRepository customers;
 
-  private PaymentQueryService service;
+  private stablecointransaction.payment.service.CustomerPaymentQueryService service;
   private UUID userId;
   private UUID customerId;
   private UUID paymentId;
@@ -38,7 +36,7 @@ class PaymentQueryServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new PaymentQueryService(payments, authorization, customers);
+    service = new stablecointransaction.payment.service.CustomerPaymentQueryService(payments, customers);
     userId = UUID.randomUUID();
     customerId = UUID.randomUUID();
     paymentId = UUID.randomUUID();
@@ -54,7 +52,7 @@ class PaymentQueryServiceTest {
     when(payments.findCustomerHistory(eq(customerId), any(), any(Pageable.class)))
         .thenReturn(List.of(payment));
 
-    var result = service.listForCustomer(userId, null, 50);
+    var result = service.list(userId, null, 50);
 
     assertThat(result.payments()).hasSize(1);
     assertThat(result.payments().get(0).payment_id()).isEqualTo(paymentId);
@@ -67,7 +65,7 @@ class PaymentQueryServiceTest {
     when(customers.findByUserId(userId)).thenReturn(Optional.of(profile()));
     when(payments.findById(paymentId)).thenReturn(Optional.of(payment));
 
-    assertThat(service.getForCustomer(userId, paymentId).payment_id()).isEqualTo(paymentId);
+    assertThat(service.get(userId, paymentId).payment_id()).isEqualTo(paymentId);
   }
 
   @Test
@@ -76,7 +74,7 @@ class PaymentQueryServiceTest {
     when(customers.findByUserId(userId)).thenReturn(Optional.of(profile()));
     when(payments.findById(paymentId)).thenReturn(Optional.of(payment));
 
-    assertThatThrownBy(() -> service.getForCustomer(userId, paymentId))
+    assertThatThrownBy(() -> service.get(userId, paymentId))
         .isInstanceOf(PaymentNotFoundException.class);
   }
 
@@ -84,7 +82,7 @@ class PaymentQueryServiceTest {
   void rejects_user_without_customer_profile() {
     when(customers.findByUserId(userId)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> service.listForCustomer(userId, null, 50))
+    assertThatThrownBy(() -> service.list(userId, null, 50))
         .isInstanceOf(PaymentNotFoundException.class);
   }
 

@@ -3,8 +3,8 @@ package stablecointransaction.payment.dto;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import stablecointransaction.merchant.Merchant;
 import stablecointransaction.payment.Payment;
+import stablecointransaction.merchant.Merchant;
 
 public record PaymentQrResponse(
     UUID payment_id,

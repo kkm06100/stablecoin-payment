@@ -2,19 +2,17 @@ package stablecointransaction.payment.component;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import stablecointransaction.userauth.exception.UserAuthException;
 import stablecointransaction.payment.Payment;
 import stablecointransaction.payment.PaymentReader;
-import stablecointransaction.payment.qr.PaymentQrToken;
-import stablecointransaction.payment.qr.QrTokenReader;
-import stablecointransaction.user.CustomerProfile;
 import stablecointransaction.user.CustomerProfileRepository;
 import stablecointransaction.user.CustomerStatus;
-import stablecointransaction.user.CustomerWallet;
 import stablecointransaction.user.CustomerWalletRepository;
 import stablecointransaction.user.CustomerWalletRoles;
+import stablecointransaction.userauth.exception.UserAuthException;
 import stablecointransaction.user.exception.CustomerNotFoundException;
 import stablecointransaction.user.exception.CustomerWalletNotFoundException;
+import stablecointransaction.payment.qr.PaymentQrToken;
+import stablecointransaction.payment.qr.QrTokenReader;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,19 +35,18 @@ public class PaymentConfirmationValidator {
   public ValidatedPayment validate(UUID userId, String rawToken, OffsetDateTime now) {
     PaymentQrToken qrToken = qrTokens.requireActive(rawToken, now);
     Payment payment = payments.requirePayable(qrToken.getPaymentId(), now);
-    CustomerProfile customer = customers.findByUserId(userId)
-        .orElseThrow(CustomerNotFoundException::new);
+    var customer = customers.findByUserId(userId).orElseThrow(CustomerNotFoundException::new);
     if (customer.getStatus() != CustomerStatus.ACTIVE) {
       throw new UserAuthException(UserAuthException.Code.USER_SUSPENDED);
     }
-    CustomerWallet wallet = customerWallets.findByCustomerIdAndWalletRole(
+    UUID walletId = customerWallets.findByCustomerIdAndWalletRole(
             customer.getCustomerId(), CustomerWalletRoles.PRIMARY)
-        .orElseThrow(CustomerWalletNotFoundException::new);
-    return new ValidatedPayment(qrToken, payment, customer.getCustomerId(), wallet);
+        .orElseThrow(CustomerWalletNotFoundException::new).getWalletId();
+    return new ValidatedPayment(qrToken, payment, customer.getCustomerId(), walletId);
   }
 
   public record ValidatedPayment(PaymentQrToken qrToken,
                                  Payment payment,
                                  UUID customerId,
-                                 CustomerWallet wallet) {}
+                                 UUID walletId) {}
 }
