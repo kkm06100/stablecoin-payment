@@ -3,6 +3,10 @@ package stablecointransaction.payment;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -149,10 +153,40 @@ class PaymentOutboxIT {
     outboxProcessor.processOne();
 
     OutboxState failed = outboxState(paymentId);
-    org.assertj.core.api.Assertions.assertThat(failed.status()).isEqualTo("FAILED");
+    org.assertj.core.api.Assertions.assertThat(failed.status()).isEqualTo(PaymentOutboxStatuses.DEAD);
     org.assertj.core.api.Assertions.assertThat(failed.attemptCount()).isEqualTo(1);
-    org.assertj.core.api.Assertions.assertThat(failed.nextAttemptAt())
-        .isBeforeOrEqualTo(OffsetDateTime.now());
+    outboxProcessor.processOne();
+    org.assertj.core.api.Assertions.assertThat(outboxState(paymentId).attemptCount()).isEqualTo(1);
+  }
+
+  @Test
+  void resumesMerchantProvisioningWithoutCreatingDuplicateWallet() throws Exception {
+    Session session = signup("merchant-resume@example.com");
+    String response = mvc.perform(post("/v1/merchants")
+            .with(jwt().jwt(jwt -> jwt.subject(session.userId().toString())))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json(new CreateMerchantRequest("Resume Merchant", "resume-"
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 20)))))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString();
+    UUID merchantId = UUID.fromString(objectMapper.readTree(response).get("merchant_id").asText());
+    clearInvocations(walletProvisioner);
+
+    doThrow(new StablecoinTransactionRemoteException(503, new RuntimeException("temporary")))
+        .when(tokenAccounts).register(any(), any());
+    merchantOutboxProcessor.processOne();
+    verify(walletProvisioner, times(1)).create(any());
+
+    jdbc.update("UPDATE merchant.merchant_outbox SET next_attempt_at = now() "
+        + "WHERE merchant_id = ?", merchantId);
+    doNothing().when(tokenAccounts).register(any(), any());
+    merchantOutboxProcessor.processOne();
+
+    verify(walletProvisioner, times(1)).create(any());
+    Integer wallets = jdbc.queryForObject(
+        "SELECT count(*) FROM merchant.merchant_wallets WHERE merchant_id = ?",
+        Integer.class, merchantId);
+    org.assertj.core.api.Assertions.assertThat(wallets).isEqualTo(1);
   }
 
   private UUID confirmPayment(Session session, UUID merchantId) throws Exception {
