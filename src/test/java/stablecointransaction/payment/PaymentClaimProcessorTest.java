@@ -21,6 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentClaimProcessorTest {
+  private static final String TEST_ORDER_ID = "order";
+  private static final String TEST_TOKEN = "USDC-test";
+  private static final BigInteger TEST_AMOUNT = BigInteger.ONE;
+  private static final String TEST_DESCRIPTION = "description";
+
   @Mock PaymentRepository payments;
 
   @Test
@@ -75,7 +80,7 @@ class PaymentClaimProcessorTest {
   private Payment payment(OffsetDateTime expiresAt) {
     OffsetDateTime createdAt = expiresAt.minusMinutes(5);
     return new Payment(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
-        "order", "USDC-test", BigInteger.ONE, "description", PaymentStatuses.CREATED,
+        TEST_ORDER_ID, TEST_TOKEN, TEST_AMOUNT, TEST_DESCRIPTION, PaymentStatuses.CREATED,
         expiresAt, createdAt);
   }
 }
