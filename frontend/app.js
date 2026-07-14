@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { token: '', merchantId: '', paymentId: '', qrToken: '', wallet: null, historyCursor: null };
+const state = { token: '', merchantId: '', paymentId: '', qrToken: '', qrExpiresAt: null, qrTimer: null, wallet: null, historyCursor: null };
 const api = () => $('baseUrl').value.replace(/\/$/, '');
 const headers = () => ({'Content-Type':'application/json', ...(state.token ? {Authorization:`Bearer ${state.token}`} : {})});
 
@@ -10,6 +10,7 @@ async function request(method, path, body, options = {}) {
   const text = await response.text(); let data;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   log(`${method} ${path} -> ${response.status}`, data);
+  if (data?.qr_payload) state.qrExpiresAt = data.expires_at || null;
   if (!response.ok && !options.allowError) throw new Error(`${response.status} ${JSON.stringify(data)}`);
   return {ok: response.ok, status: response.status, data};
 }
@@ -57,7 +58,57 @@ $('copyAddress').onclick = async () => { try { const address = state.wallet?.dep
 $('sendTransfer').onclick = async () => { try { requireLogin(); const key = crypto.randomUUID(); const result = await request('POST', '/v1/transfers', {destination_wallet_id:$('destinationWalletId').value, token:$('transferToken').value, amount:Number($('transferAmount').value), memo:$('memo').value, idempotency_key:key}); state.transferId = result.data.transfer_id; output('transferResult', result.data); } catch (e) { showError(e); } };
 $('transferDetail').onclick = async () => { try { requireLogin(); const id = $('transferId').value || state.transferId; const result = await request('GET', `/v1/transfers/${id}`); output('transferResult', result.data); } catch (e) { showError(e); } };
 
-function renderQr(payload) { if (payload && window.QRCode) QRCode.toCanvas($('qrCanvas'), `${api()}${payload}`); }
+function extractQrToken(payload) {
+  if (!payload) return '';
+  try {
+    const path = new URL(payload, api()).pathname;
+    return decodeURIComponent(path.split('/').filter(Boolean).pop() || '');
+  } catch {
+    return payload.split('/').filter(Boolean).pop() || '';
+  }
+}
+
+function clearQr() {
+  if (state.qrTimer) clearInterval(state.qrTimer);
+  state.qrTimer = null;
+  $('qrCanvas').getContext('2d').clearRect(0, 0, 220, 220);
+  $('qrStatus').textContent = 'QR 없음';
+}
+
+function renderQr(payload, expiresAt = state.qrExpiresAt) {
+  clearQr();
+  state.qrToken = extractQrToken(payload);
+  state.qrExpiresAt = expiresAt || null;
+  if (!payload) return;
+  if (!window.QRCode) {
+    $('qrStatus').textContent = 'QR 라이브러리를 불러오지 못했습니다.';
+    return;
+  }
+
+  const qrUrl = new URL(payload, api()).href;
+  QRCode.toCanvas($('qrCanvas'), qrUrl, {width:220, margin:2}, (error) => {
+    if (error) {
+      $('qrStatus').textContent = 'QR 생성 실패';
+      showError(error);
+      return;
+    }
+    $('qrStatus').textContent = `QR 생성 완료 · ${qrUrl}`;
+  });
+
+  if (expiresAt) {
+    const updateExpiry = () => {
+      const remaining = new Date(expiresAt).getTime() - Date.now();
+      if (remaining <= 0) {
+        clearQr();
+        $('qrStatus').textContent = 'QR 만료됨';
+        return;
+      }
+      $('qrStatus').textContent = `QR 생성 완료 · ${Math.ceil(remaining / 1000)}초 남음`;
+    };
+    updateExpiry();
+    state.qrTimer = setInterval(updateExpiry, 1000);
+  }
+}
 async function loadPaymentHistory() {
   const limit = Math.min(Math.max(Number($('historyLimit').value || 20), 1), 200);
   const query = new URLSearchParams({limit:String(limit)});

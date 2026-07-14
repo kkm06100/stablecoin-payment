@@ -30,6 +30,7 @@
   <button id="cancelPayment">결제 취소</button>
   <pre id="payment"></pre>
   <canvas id="qrCanvas" width="220" height="220"></canvas>
+  <p id="qrStatus" aria-live="polite">QR 없음</p>
 
   <h2>고객 결제내역</h2>
   <input id="historyLimit" type="number" value="20" min="1" max="200">
@@ -52,7 +53,7 @@
   <pre id="transferResult"></pre>
 
   <h2>API 로그</h2><pre id="log"></pre>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/lib/browser.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
