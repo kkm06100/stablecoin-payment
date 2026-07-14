@@ -47,4 +47,9 @@ public class Merchant {
   public String getStatus() { return status; }
   public OffsetDateTime getCreatedAt() { return createdAt; }
   public OffsetDateTime getUpdatedAt() { return updatedAt; }
+
+  public void activate(OffsetDateTime now) {
+    this.status = MerchantStatuses.ACTIVE;
+    this.updatedAt = now;
+  }
 }

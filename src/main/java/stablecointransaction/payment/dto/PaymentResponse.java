@@ -23,4 +23,11 @@ public record PaymentResponse(
         payment.getDescription(), payment.getStatus(), payment.getExpiresAt(),
         qrPayload, payment.getCreatedAt());
   }
+
+  public static PaymentResponse withStatus(Payment payment, String status, String qrPayload) {
+    return new PaymentResponse(payment.getPaymentId(), payment.getMerchantId(),
+        payment.getOrderId(), payment.getToken(), payment.getAmount(),
+        payment.getDescription(), status, payment.getExpiresAt(),
+        qrPayload, payment.getCreatedAt());
+  }
 }

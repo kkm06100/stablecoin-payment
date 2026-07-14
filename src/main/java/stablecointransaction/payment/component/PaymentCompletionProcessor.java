@@ -1,13 +1,15 @@
 package stablecointransaction.payment.component;
 
 import java.time.OffsetDateTime;
-import stablecointransaction.client.StablecoinTransactionClient;
+import stablecointransaction.external.port.TransferGateway;
 import stablecointransaction.payment.PaymentRepository;
 import stablecointransaction.payment.Payment;
+import stablecointransaction.payment.PaymentStatuses;
 import stablecointransaction.payment.exception.PaymentProcessingException;
 import stablecointransaction.payment.exception.PaymentNotFoundException;
 import stablecointransaction.payment.qr.PaymentQrTokenRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class PaymentCompletionProcessor {
@@ -20,13 +22,17 @@ public class PaymentCompletionProcessor {
     this.qrTokens = qrTokens;
   }
 
-  public Payment complete(StablecoinTransactionClient.RemoteTransfer transfer,
+  @Transactional
+  public Payment complete(TransferGateway.TransferResult transfer,
                          java.util.UUID paymentId, java.util.UUID qrTokenId,
                          OffsetDateTime now) {
-    if (payments.markPaid(paymentId, transfer.transferId(), now) != 1) {
+    Payment current = payments.findById(paymentId).orElseThrow(PaymentProcessingException::new);
+    if (!PaymentStatuses.PAID.equals(current.getStatus())
+        && payments.markPaid(paymentId, transfer.transferId(), now) != 1) {
       throw new PaymentProcessingException();
     }
-    if (qrTokens.markUsed(qrTokenId, now) != 1) {
+    var token = qrTokens.findById(qrTokenId).orElseThrow(PaymentProcessingException::new);
+    if (token.getUsedAt() == null && qrTokens.markUsed(qrTokenId, now) != 1) {
       throw new PaymentProcessingException();
     }
     return payments.findById(paymentId).orElseThrow(PaymentNotFoundException::new);

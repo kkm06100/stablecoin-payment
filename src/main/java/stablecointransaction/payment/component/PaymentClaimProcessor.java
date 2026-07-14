@@ -7,7 +7,6 @@ import stablecointransaction.payment.PaymentRepository;
 import stablecointransaction.payment.exception.PaymentAlreadyProcessedException;
 import stablecointransaction.payment.exception.PaymentExpiredException;
 import stablecointransaction.payment.exception.PaymentNotFoundException;
-import stablecointransaction.user.CustomerWallet;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,10 +17,10 @@ public class PaymentClaimProcessor {
     this.payments = payments;
   }
 
-  public void claim(Payment payment, UUID customerId, CustomerWallet wallet,
+  public void claim(Payment payment, UUID customerId, UUID walletId,
                     OffsetDateTime now) {
     int claimed = payments.claim(payment.getPaymentId(), customerId,
-        wallet.getWalletId(), now);
+        walletId, now);
     if (claimed == 1) return;
 
     Payment current = payments.findById(payment.getPaymentId())

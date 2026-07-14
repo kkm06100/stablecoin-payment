@@ -4,6 +4,19 @@ const api = () => $('baseUrl').value.replace(/\/$/, '');
 const headers = () => ({'Content-Type':'application/json', ...(state.token ? {Authorization:`Bearer ${state.token}`} : {})});
 
 function output(id, value) { $(id).textContent = JSON.stringify(value, null, 2); }
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function waitForPayment(paymentId) {
+  for (let attempt = 0; attempt < 15; attempt++) {
+    await sleep(1000);
+    const result = await request('GET', `/v1/payments/${paymentId}`);
+    output('payment', result.data);
+    if (result.data.status === 'PAID') return result.data;
+    if (result.data.status === 'FAILED' || result.data.status === 'CANCELED') {
+      throw new Error(`결제 처리 실패: ${result.data.status}`);
+    }
+  }
+  throw new Error('결제 처리 시간이 초과되었습니다');
+}
 function log(label, value) { $('log').textContent += `[${new Date().toLocaleTimeString()}] ${label}\n${JSON.stringify(value, null, 2)}\n\n`; }
 async function request(method, path, body, options = {}) {
   const response = await fetch(api() + path, {method, headers: headers(), body: body == null ? undefined : JSON.stringify(body)});
@@ -48,6 +61,14 @@ $('createPayment').onclick = async () => { try {
 $('lookupQr').onclick = async () => { try { requireLogin(); const result = await request('GET', `/v1/payment-qr/${state.qrToken}`); output('payment', result.data); } catch (e) { showError(e); } };
 $('confirmQr').onclick = async () => { try { requireLogin(); const result = await request('POST', `/v1/payment-qr/${state.qrToken}/confirm`); output('payment', result.data); $('status').textContent = '결제 승인 완료'; } catch (e) { showError(e); } };
 $('cancelPayment').onclick = async () => { try { requireLogin(); const result = await request('POST', `/v1/merchants/${state.merchantId}/payments/${state.paymentId}/cancel`, {}); output('payment', result.data); } catch (e) { showError(e); } };
+$('confirmQr').onclick = async () => { try {
+  requireLogin();
+  const result = await request('POST', `/v1/payment-qr/${state.qrToken}/confirm`);
+  output('payment', result.data);
+  $('status').textContent = '결제 승인 처리 중';
+  await waitForPayment(result.data.payment_id);
+  $('status').textContent = '결제 승인 완료';
+} catch (e) { showError(e); } };
 
 $('myPayments').onclick = async () => { try { requireLogin(); state.historyCursor = null; await loadPaymentHistory(); } catch (e) { showError(e); } };
 $('nextPayments').onclick = async () => { try { requireLogin(); if (!state.historyCursor) throw new Error('다음 페이지가 없습니다'); await loadPaymentHistory(); } catch (e) { showError(e); } };

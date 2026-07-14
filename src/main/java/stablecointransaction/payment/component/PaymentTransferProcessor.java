@@ -1,23 +1,21 @@
 package stablecointransaction.payment.component;
 
-import stablecointransaction.client.StablecoinTransactionClient;
+import stablecointransaction.external.port.TransferGateway;
 import stablecointransaction.payment.Payment;
 import stablecointransaction.payment.PaymentConstants;
-import stablecointransaction.user.CustomerWallet;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentTransferProcessor {
-  private final StablecoinTransactionClient transactionClient;
+  private final TransferGateway transactionClient;
 
-  public PaymentTransferProcessor(StablecoinTransactionClient transactionClient) {
+  public PaymentTransferProcessor(TransferGateway transactionClient) {
     this.transactionClient = transactionClient;
   }
 
-  public StablecoinTransactionClient.RemoteTransfer transfer(Payment payment,
-                                                              CustomerWallet wallet) {
+  public TransferGateway.TransferResult transfer(Payment payment, java.util.UUID customerWalletId) {
     String referenceId = PaymentConstants.TRANSFER_REFERENCE_PREFIX + payment.getPaymentId();
-    return transactionClient.createTransfer(wallet.getWalletId(), payment.getMerchantWalletId(),
+    return transactionClient.create(customerWalletId, payment.getMerchantWalletId(),
         payment.getToken(), payment.getAmount(), referenceId, null);
   }
 }

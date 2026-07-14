@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentValidator {
-  void validate(String orderId, String token, BigInteger amount) {
+  public void validate(String orderId, String token, BigInteger amount) {
     if (orderId == null || orderId.isBlank()) {
       throw new InvalidPaymentRequestException();
     }
