@@ -3,6 +3,7 @@ package stablecointransaction.userauth;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import stablecointransaction.exception.InternalApplicationException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import stablecointransaction.common.crypto.CryptoAlgorithms;
@@ -25,7 +26,7 @@ public class RefreshTokenGenerator {
       byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
       return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
     } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 unavailable", e);
+      throw new InternalApplicationException(e);
     }
   }
 }

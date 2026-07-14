@@ -1,5 +1,7 @@
 package stablecointransaction.merchant;
 
+import stablecointransaction.merchant.exception.*;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import stablecointransaction.client.StablecoinTransactionClient;
@@ -38,16 +40,15 @@ public class MerchantService {
   public MerchantResponse create(UUID ownerUserId, String merchantName,
                                  String businessNumber) {
     User owner = users.findById(ownerUserId)
-        .orElseThrow(() -> new MerchantAccessDeniedException("user not found: " + ownerUserId));
+        .orElseThrow(MerchantAccessDeniedException::new);
     if (owner.getStatus() != UserStatus.ACTIVE) {
-      throw new MerchantAccessDeniedException("user is not active: " + ownerUserId);
+      throw new MerchantAccessDeniedException();
     }
 
     String normalizedBusinessNumber = normalizeBusinessNumber(businessNumber);
     if (normalizedBusinessNumber != null
         && merchants.findByBusinessNumber(normalizedBusinessNumber).isPresent()) {
-      throw new MerchantAlreadyExistsException(
-          "business number already registered: " + normalizedBusinessNumber);
+      throw new MerchantAlreadyExistsException();
     }
     OffsetDateTime now = OffsetDateTime.now();
     UUID merchantId = UUID.randomUUID();
@@ -67,15 +68,13 @@ public class MerchantService {
   @Transactional(readOnly = true)
   public MerchantResponse get(UUID userId, UUID merchantId) {
     Merchant merchant = merchants.findById(merchantId)
-        .orElseThrow(() -> new MerchantNotFoundException("merchant " + merchantId));
+        .orElseThrow(MerchantNotFoundException::new);
     members.findByMerchantIdAndUserId(merchantId, userId)
         .filter(member -> MerchantMemberStatuses.ACTIVE.equals(member.getStatus()))
-        .orElseThrow(() -> new MerchantAccessDeniedException(
-            "user cannot access merchant " + merchantId));
+        .orElseThrow(MerchantAccessDeniedException::new);
     MerchantWallet wallet = merchantWallets.findByMerchantIdAndWalletRoleAndStatus(
             merchantId, MerchantWalletRoles.SETTLEMENT, MerchantWalletStatuses.ACTIVE)
-        .orElseThrow(() -> new MerchantInactiveException(
-            "active settlement wallet not found: " + merchantId));
+        .orElseThrow(MerchantInactiveException::new);
     return MerchantResponse.from(merchant, wallet.getWalletId());
   }
 

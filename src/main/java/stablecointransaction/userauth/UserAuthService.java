@@ -1,5 +1,7 @@
 package stablecointransaction.userauth;
 
+import stablecointransaction.userauth.exception.UserAuthException;
+
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -62,8 +64,7 @@ public class UserAuthService {
   public AuthTokenResponse signup(String email, String password, String displayName) {
     String normalizedEmail = normalizeEmail(email);
     if (users.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
-      throw new UserAuthException(UserAuthException.Code.EMAIL_ALREADY_REGISTERED,
-          "email already registered");
+      throw new UserAuthException(UserAuthException.Code.EMAIL_ALREADY_REGISTERED);
     }
 
     OffsetDateTime now = now();
@@ -84,8 +85,7 @@ public class UserAuthService {
     User user = users.findByEmailIgnoreCase(normalizeEmail(email))
         .orElseThrow(this::loginFailed);
     if (user.getStatus() != UserStatus.ACTIVE) {
-      throw new UserAuthException(UserAuthException.Code.USER_SUSPENDED,
-          "user is not active");
+      throw new UserAuthException(UserAuthException.Code.USER_SUSPENDED);
     }
     if (!passwordEncoder.matches(password, user.getPasswordHash())) {
       throw loginFailed();
@@ -112,8 +112,7 @@ public class UserAuthService {
         .orElseThrow(this::invalidRefreshToken);
     if (user.getStatus() != UserStatus.ACTIVE) {
       refreshTokens.revokeFamily(current.getTokenFamilyId(), now);
-      throw new UserAuthException(UserAuthException.Code.USER_SUSPENDED,
-          "user is not active");
+      throw new UserAuthException(UserAuthException.Code.USER_SUSPENDED);
     }
 
     current.consume(now);
@@ -146,12 +145,10 @@ public class UserAuthService {
   }
 
   private UserAuthException loginFailed() {
-    return new UserAuthException(UserAuthException.Code.LOGIN_FAILED,
-        "email or password is invalid");
+    return new UserAuthException(UserAuthException.Code.LOGIN_FAILED);
   }
 
   private UserAuthException invalidRefreshToken() {
-    return new UserAuthException(UserAuthException.Code.REFRESH_TOKEN_INVALID,
-        "refresh token is invalid");
+    return new UserAuthException(UserAuthException.Code.REFRESH_TOKEN_INVALID);
   }
 }

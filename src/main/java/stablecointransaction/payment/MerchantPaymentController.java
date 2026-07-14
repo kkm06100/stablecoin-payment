@@ -21,10 +21,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RestController
 @RequestMapping(UserAuthPaths.MERCHANT_PREFIX + "/{merchantId}/payments")
 public class MerchantPaymentController {
-  private final PaymentCreator creator;
+  private final PaymentCreationService creator;
   private final PaymentQueryService queries;
 
-  public MerchantPaymentController(PaymentCreator creator, PaymentQueryService queries) {
+  public MerchantPaymentController(PaymentCreationService creator, PaymentQueryService queries) {
     this.creator = creator;
     this.queries = queries;
   }

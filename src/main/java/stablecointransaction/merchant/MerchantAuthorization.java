@@ -1,5 +1,7 @@
 package stablecointransaction.merchant;
 
+import stablecointransaction.merchant.exception.*;
+
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +21,9 @@ public class MerchantAuthorization {
   public Merchant requirePaymentCreation(UUID userId, UUID merchantId) {
     Merchant merchant = requireMembership(userId, merchantId);
     MerchantMember member = members.findByMerchantIdAndUserId(merchantId, userId)
-        .orElseThrow(() -> new MerchantAccessDeniedException(
-            "user is not a merchant member: " + userId));
+        .orElseThrow(MerchantAccessDeniedException::new);
     if (!MerchantRoles.PAYMENT_CREATORS.contains(member.getMemberRole())) {
-      throw new MerchantAccessDeniedException(
-          "member cannot create payment for merchant " + merchantId);
+      throw new MerchantAccessDeniedException();
     }
     return merchant;
   }
@@ -31,17 +31,15 @@ public class MerchantAuthorization {
   @Transactional(readOnly = true)
   public Merchant requireMembership(UUID userId, UUID merchantId) {
     Merchant merchant = merchants.findById(merchantId)
-        .orElseThrow(() -> new MerchantNotFoundException("merchant " + merchantId));
+        .orElseThrow(MerchantNotFoundException::new);
     if (!MerchantStatuses.ACTIVE.equals(merchant.getStatus())) {
-      throw new MerchantInactiveException("merchant is not active: " + merchantId);
+      throw new MerchantInactiveException();
     }
 
     MerchantMember member = members.findByMerchantIdAndUserId(merchantId, userId)
-        .orElseThrow(() -> new MerchantAccessDeniedException(
-            "user is not a merchant member: " + userId));
+        .orElseThrow(MerchantAccessDeniedException::new);
     if (!MerchantMemberStatuses.ACTIVE.equals(member.getStatus())) {
-      throw new MerchantAccessDeniedException(
-          "merchant membership is not active: " + merchantId);
+      throw new MerchantAccessDeniedException();
     }
     return merchant;
   }

@@ -16,10 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(UserAuthPaths.PAYMENT_QR_PREFIX)
 public class PaymentQrController {
-  private final PaymentQrLookup lookup;
-  private final PaymentConfirmer confirmer;
+  private final PaymentQrQueryService lookup;
+  private final PaymentConfirmationService confirmer;
 
-  public PaymentQrController(PaymentQrLookup lookup, PaymentConfirmer confirmer) {
+  public PaymentQrController(PaymentQrQueryService lookup,
+                             PaymentConfirmationService confirmer) {
     this.lookup = lookup;
     this.confirmer = confirmer;
   }

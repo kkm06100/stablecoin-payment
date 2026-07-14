@@ -1,5 +1,8 @@
 package stablecointransaction.client;
 
+import stablecointransaction.client.exception.StablecoinTransactionRemoteException;
+import stablecointransaction.exception.InternalApplicationException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigInteger;
@@ -80,12 +83,7 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
           .retrieve()
           .body(type);
     } catch (RestClientResponseException e) {
-      String remoteBody = e.getResponseBodyAsString();
-      throw new StablecoinTransactionRemoteException(e.getStatusCode().value(),
-          remoteBody == null || remoteBody.isBlank()
-              ? "stablecoin-transaction returned " + e.getStatusCode().value()
-              : remoteBody,
-          e);
+      throw new StablecoinTransactionRemoteException(e.getStatusCode().value(), e);
     }
   }
 
@@ -93,7 +91,7 @@ public class StablecoinTransactionRestClient implements StablecoinTransactionCli
     try {
       return objectMapper.writeValueAsString(body);
     } catch (JsonProcessingException e) {
-      throw new IllegalStateException("could not encode stablecoin request", e);
+      throw new InternalApplicationException(e);
     }
   }
 

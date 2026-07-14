@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
+import stablecointransaction.exception.InternalApplicationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -51,7 +52,7 @@ public class OpenBaoRequestSigner implements StablecoinTransactionRequestSigner 
     try {
       return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(body));
     } catch (java.security.NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 unavailable", e);
+      throw new InternalApplicationException(e);
     }
   }
 }

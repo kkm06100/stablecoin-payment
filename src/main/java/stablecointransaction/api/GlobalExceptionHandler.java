@@ -1,17 +1,12 @@
 package stablecointransaction.api;
 
-import stablecointransaction.merchant.MerchantAccessDeniedException;
-import stablecointransaction.merchant.MerchantAlreadyExistsException;
-import stablecointransaction.merchant.MerchantInactiveException;
-import stablecointransaction.merchant.MerchantNotFoundException;
-import stablecointransaction.payment.InvalidPaymentRequestException;
-import stablecointransaction.payment.InvalidQrTokenException;
-import stablecointransaction.payment.PaymentAlreadyProcessedException;
-import stablecointransaction.payment.PaymentExpiredException;
-import stablecointransaction.payment.PaymentNotFoundException;
-import stablecointransaction.payment.PaymentRequestMismatchException;
-import stablecointransaction.client.StablecoinTransactionRemoteException;
-import stablecointransaction.userauth.UserAuthException;
+import stablecointransaction.exception.ApplicationException;
+import stablecointransaction.client.exception.StablecoinTransactionRemoteException;
+import stablecointransaction.merchant.exception.*;
+import stablecointransaction.payment.exception.*;
+import stablecointransaction.user.exception.*;
+import stablecointransaction.userauth.exception.UserAuthException;
+import stablecointransaction.payment.exception.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -64,6 +59,11 @@ public class GlobalExceptionHandler {
     return response(403, ApiErrorCodes.MERCHANT_ACCESS_DENIED, ex.getMessage());
   }
 
+  @ExceptionHandler({CustomerNotFoundException.class, CustomerWalletNotFoundException.class})
+  public ResponseEntity<ErrorResponse> customerNotFound(ApplicationException ex) {
+    return response(404, ApiErrorCodes.NOT_FOUND, ex.getMessage());
+  }
+
   @ExceptionHandler(UserAuthException.class)
   public ResponseEntity<ErrorResponse> userAuth(UserAuthException ex) {
     return switch (ex.getCode()) {
@@ -82,9 +82,9 @@ public class GlobalExceptionHandler {
     return response(400, ApiErrorCodes.INVALID_REQUEST, message);
   }
 
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ErrorResponse> badRequest(IllegalArgumentException ex) {
-    return response(400, ApiErrorCodes.BAD_REQUEST, ex.getMessage());
+  @ExceptionHandler(ApplicationException.class)
+  public ResponseEntity<ErrorResponse> applicationError(ApplicationException ex) {
+    return response(500, ApiErrorCodes.INTERNAL_ERROR, ex.getMessage());
   }
 
   @ExceptionHandler(StablecoinTransactionRemoteException.class)

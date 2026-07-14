@@ -5,6 +5,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import stablecointransaction.exception.InternalApplicationException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -51,7 +52,7 @@ public class SecurityConfig {
   SecretKey userJwtSecretKey(UserAuthProperties properties) {
     byte[] secret = properties.getJwtSecret().getBytes(StandardCharsets.UTF_8);
     if (secret.length < 32) {
-      throw new IllegalStateException("user-auth.jwt-secret must be at least 32 bytes");
+      throw new InternalApplicationException();
     }
     return new SecretKeySpec(secret, "HmacSHA256");
   }

@@ -3,6 +3,7 @@ package stablecointransaction.payment;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import stablecointransaction.payment.exception.PaymentNotFoundException;
 import stablecointransaction.merchant.MerchantAuthorization;
 import stablecointransaction.user.CustomerProfileRepository;
 import stablecointransaction.payment.dto.PaymentListResponse;
@@ -30,7 +31,7 @@ public class PaymentQueryService {
     authorization.requireMembership(userId, merchantId);
     Payment payment = payments.findById(paymentId)
         .filter(row -> row.getMerchantId().equals(merchantId))
-        .orElseThrow(() -> new PaymentNotFoundException("payment " + paymentId));
+        .orElseThrow(PaymentNotFoundException::new);
     return PaymentResponse.from(payment, null);
   }
 
@@ -50,18 +51,18 @@ public class PaymentQueryService {
   @Transactional(readOnly = true)
   public PaymentResponse getForCustomer(UUID userId, UUID paymentId) {
     UUID customerId = customers.findByUserId(userId)
-        .orElseThrow(() -> new PaymentNotFoundException("customer for user " + userId))
+        .orElseThrow(PaymentNotFoundException::new)
         .getCustomerId();
     Payment payment = payments.findById(paymentId)
         .filter(row -> customerId.equals(row.getCustomerId()))
-        .orElseThrow(() -> new PaymentNotFoundException("payment " + paymentId));
+        .orElseThrow(PaymentNotFoundException::new);
     return PaymentResponse.from(payment, null);
   }
 
   @Transactional(readOnly = true)
   public PaymentListResponse listForCustomer(UUID userId, OffsetDateTime before, int limit) {
     UUID customerId = customers.findByUserId(userId)
-        .orElseThrow(() -> new PaymentNotFoundException("customer for user " + userId))
+        .orElseThrow(PaymentNotFoundException::new)
         .getCustomerId();
     int capped = Math.min(Math.max(limit, 1), 200);
     OffsetDateTime cursor = before == null ? OffsetDateTime.now() : before;
