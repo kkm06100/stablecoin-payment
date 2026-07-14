@@ -2,6 +2,7 @@ package stablecointransaction.payment;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,13 +12,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 import java.util.UUID;
+import stablecointransaction.exception.InternalApplicationException;
+import stablecointransaction.external.exception.StablecoinTransactionRemoteException;
 import stablecointransaction.external.port.TokenAccountRegistrar;
 import stablecointransaction.external.port.TransferGateway;
 import stablecointransaction.external.port.WalletProvisioner;
 import stablecointransaction.merchant.dto.CreateMerchantRequest;
 import stablecointransaction.merchant.outbox.MerchantOutboxProcessor;
 import stablecointransaction.payment.outbox.PaymentOutboxProcessor;
+import stablecointransaction.payment.outbox.PaymentOutboxStatuses;
 import stablecointransaction.payment.dto.CreatePaymentRequest;
 import stablecointransaction.support.TestDatabaseCleaner;
 import stablecointransaction.userauth.dto.AuthTokenResponse;
@@ -78,10 +83,10 @@ class PaymentOutboxIT {
     org.assertj.core.api.Assertions.assertThat(pending).isEqualTo(1);
 
     UUID transferId = UUID.randomUUID();
-    when(transferGateway.create(any(), any(), any(), any(), any(), any()))
-        .thenReturn(new TransferGateway.TransferResult(
+    doReturn(new TransferGateway.TransferResult(
             transferId, UUID.randomUUID(), UUID.randomUUID(), "USDC-test", BigInteger.ONE,
-            "payment_" + paymentId, "CONFIRMED"));
+            "payment_" + paymentId, "CONFIRMED"))
+        .when(transferGateway).create(any(), any(), any(), any(), any(), any());
     outboxProcessor.processOne();
 
     Integer succeeded = jdbc.queryForObject(
@@ -98,6 +103,77 @@ class PaymentOutboxIT {
     org.assertj.core.api.Assertions.assertThat(succeeded).isEqualTo(1);
     org.assertj.core.api.Assertions.assertThat(paid).isEqualTo(1);
     org.assertj.core.api.Assertions.assertThat(used).isEqualTo(1);
+  }
+
+  @Test
+  void storesRetryableExternalFailureAndRetriesAfterSchedule() throws Exception {
+    Session session = signup("outbox-retry@example.com");
+    UUID paymentId = confirmPayment(session, createMerchant(session));
+    when(transferGateway.create(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new StablecoinTransactionRemoteException(503,
+            new RuntimeException("transaction server unavailable")));
+
+    outboxProcessor.processOne();
+
+    OutboxState failed = outboxState(paymentId);
+    org.assertj.core.api.Assertions.assertThat(failed.status()).isEqualTo("FAILED");
+    org.assertj.core.api.Assertions.assertThat(failed.attemptCount()).isGreaterThanOrEqualTo(1);
+    org.assertj.core.api.Assertions.assertThat(failed.nextAttemptAt())
+        .isAfter(OffsetDateTime.now());
+
+    jdbc.update("UPDATE payment.payment_outbox SET next_attempt_at = now() WHERE payment_id = ?",
+        paymentId);
+    UUID transferId = UUID.randomUUID();
+    doReturn(new TransferGateway.TransferResult(
+            transferId, UUID.randomUUID(), UUID.randomUUID(), "USDC-test", BigInteger.ONE,
+            "payment_" + paymentId, "CONFIRMED"))
+        .when(transferGateway).create(any(), any(), any(), any(), any(), any());
+
+    outboxProcessor.processOne();
+
+    org.assertj.core.api.Assertions.assertThat(outboxState(paymentId).status())
+        .isEqualTo(PaymentOutboxStatuses.SUCCEEDED);
+    Integer paid = jdbc.queryForObject(
+        "SELECT count(*) FROM payment.payments WHERE payment_id = ? AND status = 'PAID'",
+        Integer.class, paymentId);
+    org.assertj.core.api.Assertions.assertThat(paid).isEqualTo(1);
+  }
+
+  @Test
+  void doesNotScheduleInternalApplicationFailureForRetry() throws Exception {
+    Session session = signup("outbox-internal-failure@example.com");
+    UUID paymentId = confirmPayment(session, createMerchant(session));
+    when(transferGateway.create(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new InternalApplicationException());
+
+    outboxProcessor.processOne();
+
+    OutboxState failed = outboxState(paymentId);
+    org.assertj.core.api.Assertions.assertThat(failed.status()).isEqualTo("FAILED");
+    org.assertj.core.api.Assertions.assertThat(failed.attemptCount()).isEqualTo(1);
+    org.assertj.core.api.Assertions.assertThat(failed.nextAttemptAt())
+        .isBeforeOrEqualTo(OffsetDateTime.now());
+  }
+
+  private UUID confirmPayment(Session session, UUID merchantId) throws Exception {
+    JsonNode created = createPayment(session, merchantId);
+    UUID paymentId = UUID.fromString(created.get("payment_id").asText());
+    String rawToken = created.get("qr_payload").asText()
+        .substring(created.get("qr_payload").asText().lastIndexOf('/') + 1);
+    mvc.perform(post("/v1/payment-qr/{token}/confirm", rawToken)
+            .with(jwt().jwt(jwt -> jwt.subject(session.userId().toString()))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value(PaymentStatuses.PROCESSING));
+    return paymentId;
+  }
+
+  private OutboxState outboxState(UUID paymentId) {
+    return jdbc.queryForObject(
+        "SELECT status, attempt_count, next_attempt_at FROM payment.payment_outbox "
+            + "WHERE payment_id = ?",
+        (rs, rowNum) -> new OutboxState(rs.getString("status"),
+            rs.getInt("attempt_count"), rs.getObject("next_attempt_at", OffsetDateTime.class)),
+        paymentId);
   }
 
   private JsonNode createPayment(Session session, UUID merchantId) throws Exception {
@@ -140,4 +216,5 @@ class PaymentOutboxIT {
 
   private record Session(UUID userId, String accessToken) {}
   private record SignupPayload(String email, String password, String display_name) {}
+  private record OutboxState(String status, int attemptCount, OffsetDateTime nextAttemptAt) {}
 }

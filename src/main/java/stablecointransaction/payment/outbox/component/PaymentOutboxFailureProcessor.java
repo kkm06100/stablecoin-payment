@@ -20,13 +20,14 @@ public class PaymentOutboxFailureProcessor {
 
   @Transactional
   public void failed(PaymentOutbox event, Exception error, OffsetDateTime now) {
-    if (retryable(error) && event.getAttemptCount() < MAX_ATTEMPTS) {
-      long delaySeconds = 1L << Math.max(0, event.getAttemptCount() - 1);
-      event.markFailed(error.getMessage(), now.plus(Duration.ofSeconds(delaySeconds)), now);
+    PaymentOutbox current = outbox.findById(event.getEventId()).orElse(event);
+    if (retryable(error) && current.getAttemptCount() < MAX_ATTEMPTS) {
+      long delaySeconds = 1L << Math.max(0, current.getAttemptCount() - 1);
+      current.markFailed(error.getMessage(), now.plus(Duration.ofSeconds(delaySeconds)), now);
     } else {
-      event.markFailed(error.getMessage(), now, now);
+      current.markFailed(error.getMessage(), now, now);
     }
-    outbox.save(event);
+    outbox.saveAndFlush(current);
   }
 
   private boolean retryable(Exception error) {
